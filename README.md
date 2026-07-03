@@ -1,0 +1,2 @@
+# healthCasePlatform
+Example platform
