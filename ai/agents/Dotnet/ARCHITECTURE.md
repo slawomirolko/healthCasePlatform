@@ -87,6 +87,12 @@ HealthCasePlatform.Domain/
 - **Domain and Application never depend on configuration types** — no `IOptions<T>`, no settings records. Values cross into them as plain method arguments / request objects.
 - See `ai/agents/Dotnet/SETTINGS.md` for the full typed-settings pattern.
 
+## Package Management (Central Package Management)
+- **NuGet versions are centralized** in `Directory.Packages.props` at the repo root (`ManagePackageVersionsCentrally=true`). Do **not** put `Version=` on `PackageReference` entries in `.csproj` files — `dotnet add package` / restore will reject them.
+- To add a package: add a `<PackageVersion Include="..." Version="..." />` entry in `Directory.Packages.props`, then a versionless `<PackageReference Include="..." />` in the target `.csproj`. (`dotnet add package` does both automatically when CPM is on.)
+- Version the related framework families via the MSBuild variables declared in `Directory.Packages.props` (`EfCoreVersion`, `ExtensionsVersion`, `AspNetCoreVersion`, `TestSdkVersion`, `XunitVersion`, `XunitRunnerVersion`, `CoverletVersion`, `ShouldlyVersion`) — bump one variable to upgrade the whole family.
+- Transitive pinning is off (`CentralPackageTransitivePinningEnabled=false`); only directly-referenced packages need a `PackageVersion` entry.
+
 ## References
 - Settings & configuration: `ai/agents/Dotnet/SETTINGS.md`
 - Coding style: `ai/agents/Dotnet/CODING_STYLE.md`
