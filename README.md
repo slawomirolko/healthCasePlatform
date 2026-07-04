@@ -5,7 +5,7 @@ Training / architecture practice project inspired by enterprise systems used in 
 ## Purpose
 
 This repository is a learning and architecture practice project.
-It is not an official European Commission, DG SANTE, European Dynamics, or public-sector system.
+It is not an official public-sector system.
 
 The goal of this project is to practice designing and implementing an enterprise-grade case management platform using .NET, React, workflow automation, Microsoft 365 integration patterns, messaging, audit logging, and architecture documentation.
 
