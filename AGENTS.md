@@ -5,10 +5,13 @@ Project conventions for AI agents working in this repo.
 ## .NET Conventions
 
 ### SDK & Tooling
-- **Target framework:** .NET 10 (`net10.0`) for all projects unless a project has a specific reason to differ.
+- **Target framework:** .NET 10 (`net10.0`) for all projects unless a project project has a specific reason to differ.
 - **Solution file:** use the `.slnx` (XML) solution format, not the legacy `.sln`.
 - **Scaffold projects via the `dotnet new` templates** (`slnx`, `classlib`, `xunit`, `webapi`, etc.) — do not hand-write `.csproj`/`.slnx` files from scratch. Only edit the generated files to add references/packages.
 - Delete the template-generated placeholder files (`Class1.cs`, `UnitTest1.cs`) before committing.
+
+### Package Management (Central Package Management)
+See `ai/agents/Dotnet/ARCHITECTURE.md` → *Package Management (Central Package Management)* for the CPM file, add-package workflow, and version variables.
 
 ### Project Layout (Clean Architecture)
 See `ai/agents/Dotnet/ARCHITECTURE.md` for full domain architecture rules (layering, slice-per-aggregate-root, consistency boundaries).
@@ -31,3 +34,4 @@ See `ai/agents/Dotnet/SETTINGS.md` for the typed-settings (Options) pattern: rec
 - Build: `dotnet build`
 - Test: `dotnet test`
 - Style: `dotnet format --verify-no-changes --no-restore`
+- **Integration tests (`*.Tests.Integration`):** require Docker engine running — they spin up real dependencies (SQL Server) via Testcontainers. See `ai/agents/Dotnet/TESTING.md` → *Integration Test Infrastructure*.

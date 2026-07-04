@@ -1,0 +1,44 @@
+<Project>
+
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    <EnablePackageVersionOverride>false</EnablePackageVersionOverride>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <EfCoreVersion>10.0.0</EfCoreVersion>
+    <ExtensionsVersion>10.0.0</ExtensionsVersion>
+    <AspNetCoreVersion>10.0.9</AspNetCoreVersion>
+    <TestSdkVersion>17.14.1</TestSdkVersion>
+    <XunitVersion>2.9.3</XunitVersion>
+    <XunitRunnerVersion>3.1.4</XunitRunnerVersion>
+    <CoverletVersion>6.0.4</CoverletVersion>
+    <ShouldlyVersion>4.3.0</ShouldlyVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="ErrorOr" Version="2.1.1" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
+    <PackageVersion Include="Testcontainers.MsSql" Version="4.13.0" />
+
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EfCoreVersion)" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreVersion)" />
+
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="$(ExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="$(ExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="$(ExtensionsVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="$(ExtensionsVersion)" />
+
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="$(AspNetCoreVersion)" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="$(AspNetCoreVersion)" />
+
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="$(TestSdkVersion)" />
+    <PackageVersion Include="xunit" Version="$(XunitVersion)" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="$(XunitRunnerVersion)" />
+    <PackageVersion Include="coverlet.collector" Version="$(CoverletVersion)" />
+    <PackageVersion Include="Shouldly" Version="$(ShouldlyVersion)" />
+  </ItemGroup>
+
+</Project>
