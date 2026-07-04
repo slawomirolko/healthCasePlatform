@@ -14,7 +14,7 @@ Coding style rules for all .NET projects in this repo. AI agents and skills (e.g
 
 ## Types & Inheritance
 - **`sealed`** on every class that is not designed to be inherited — domain entities, DTOs, services, handlers. Only the `Entity` base class is `abstract`.
-- **Prefer `record`** over `class` for immutable data carriers that do not need identity or domain behavior: DTOs, view models, commands, queries, events, config objects. Do **not** use records for domain entities (they need private setters, mutable backing fields, and `Entity` inheritance).
+- **Prefer `record`** over `class` for immutable data carriers that do not need identity or domain behavior: DTOs, view models, commands, queries, events, config objects. Do **not** use records for domain entities (they need private setters, mutable backing fields, and `Entity` inheritance). Typed settings records (`sealed record` + `SectionName` + `{ get; init; }`) follow `ai/agents/Dotnet/SETTINGS.md`.
 - **Records are `sealed` by default** — no extra modifier needed.
 - **Structs:** prefer `readonly record struct` for value objects when equality by value is required.
 
