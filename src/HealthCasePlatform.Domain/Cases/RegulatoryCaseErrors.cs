@@ -1,0 +1,19 @@
+using ErrorOr;
+
+namespace HealthCasePlatform.Domain.Cases;
+
+public static class RegulatoryCaseErrors
+{
+    public static readonly Error TitleEmpty = Error.Validation("RegulatoryCase.TitleEmpty", "Case title cannot be empty.");
+    public static readonly Error CaseTypeIdEmpty = Error.Validation("RegulatoryCase.CaseTypeIdEmpty", "Case type ID cannot be empty.");
+    public static readonly Error CreatedByEmpty = Error.Validation("RegulatoryCase.CreatedByEmpty", "Created by cannot be empty.");
+
+    public static readonly Error NotDraft = Error.Conflict("RegulatoryCase.NotDraft", "Only a draft case can be submitted.");
+    public static readonly Error NotSubmitted = Error.Conflict("RegulatoryCase.NotSubmitted", "Only a submitted case can enter review.");
+    public static readonly Error InTerminalState = Error.Conflict("RegulatoryCase.InTerminalState", "Cannot change status of a case in a terminal state.");
+
+    public static readonly Error DocumentNull = Error.Validation("RegulatoryCase.DocumentNull", "Document cannot be null.");
+    public static readonly Error TaskNull = Error.Validation("RegulatoryCase.TaskNull", "Task cannot be null.");
+    public static readonly Error CommentNull = Error.Validation("RegulatoryCase.CommentNull", "Comment cannot be null.");
+    public static readonly Error DecisionNull = Error.Validation("RegulatoryCase.DecisionNull", "Decision cannot be null.");
+}
