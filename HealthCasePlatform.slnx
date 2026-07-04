@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/HealthCasePlatform.Domain/HealthCasePlatform.Domain.csproj" />
+    <Project Path="src/HealthCasePlatform.Infrastructure/HealthCasePlatform.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HealthCasePlatform.Domain.Tests/HealthCasePlatform.Domain.Tests.csproj" />
+    <Project Path="tests/HealthCasePlatform.Infrastructure.Tests/HealthCasePlatform.Infrastructure.Tests.csproj" />
   </Folder>
 </Solution>

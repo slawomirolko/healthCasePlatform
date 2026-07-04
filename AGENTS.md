@@ -24,6 +24,9 @@ See `ai/agents/Dotnet/TESTING.md` for full .NET test rules (framework, naming, l
 ### Coding Style
 See `ai/agents/Dotnet/CODING_STYLE.md` for full .NET coding style rules (formatting, naming, encapsulation, guard clauses, domain patterns).
 
+### Settings & Configuration
+See `ai/agents/Dotnet/SETTINGS.md` for the typed-settings (Options) pattern: record shape, registration, layering, defaults, secrets, validation.
+
 ### Build & Verify
 - Build: `dotnet build`
 - Test: `dotnet test`

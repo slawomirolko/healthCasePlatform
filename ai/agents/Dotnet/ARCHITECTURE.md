@@ -82,7 +82,13 @@ HealthCasePlatform.Domain/
 - **Identity is `Guid`** — every entity has `Guid Id`. Cross-aggregate references use `Guid <AggregateName>Id` (e.g. `Guid CaseTypeId`), never a foreign-key navigation property.
 - **Consistency boundary** — all invariants are enforced on the root. A child cannot transition to an invalid state without the root's knowledge.
 
+## Settings & Configuration (cross-layer)
+- Settings are read in the **outer layer only** (API / host / Infrastructure) — injected as `IOptions<T>` / `IOptionsSnapshot<T>`.
+- **Domain and Application never depend on configuration types** — no `IOptions<T>`, no settings records. Values cross into them as plain method arguments / request objects.
+- See `ai/agents/Dotnet/SETTINGS.md` for the full typed-settings pattern.
+
 ## References
+- Settings & configuration: `ai/agents/Dotnet/SETTINGS.md`
 - Coding style: `ai/agents/Dotnet/CODING_STYLE.md`
 - Test conventions: `ai/agents/Dotnet/TESTING.md`
 - Project conventions: `AGENTS.md`
