@@ -1,3 +1,4 @@
+using HealthCasePlatform.Api.Cases;
 using HealthCasePlatform.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
@@ -38,7 +39,8 @@ app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", 
 
 app.MapHealthChecks("/health");
 
-app.MapGroup("/api/v1");
+app.MapGroup("/api/v1")
+    .MapCasesEndpoints();
 
 await using (var scope = app.Services.CreateAsyncScope())
 {
