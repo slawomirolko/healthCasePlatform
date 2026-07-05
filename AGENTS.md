@@ -5,6 +5,7 @@ Project conventions for AI agents working in this repo.
 ## .NET Conventions
 
 ### SDK & Tooling
+- **Project naming:** every project starts with the `HealthCasePlatform.` prefix (e.g. `HealthCasePlatform.Domain`, `HealthCasePlatform.Api`).
 - **Target framework:** .NET 10 (`net10.0`) for all projects unless a project project has a specific reason to differ.
 - **Solution file:** use the `.slnx` (XML) solution format, not the legacy `.sln`.
 - **Scaffold projects via the `dotnet new` templates** (`slnx`, `classlib`, `xunit`, `webapi`, etc.) — do not hand-write `.csproj`/`.slnx` files from scratch. Only edit the generated files to add references/packages.
