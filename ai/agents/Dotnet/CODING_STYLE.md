@@ -96,6 +96,49 @@ Coding style rules for all .NET projects in this repo. AI agents and skills (e.g
 ## Comments
 - **No comments** unless explicitly requested by the user. Code should be self-documenting via clear names and small methods.
 
+## Method Hygiene
+- ✅ Keep methods under **30 lines** — extract when longer.
+- ❌ Do not use primary constructors for dependency injection — use explicit constructors for injected services.
+- ✅ Method names describe a single responsibility (`Submit`, `Assign`, `Reassign`).
+- ❌ Do not create method names containing `And` (e.g. `ValidateAndSave`, `FetchAndStore`) — split into separate methods.
+
+## Control Flow & Parameters
+- ✅ All control flow statements (`if`, `else`, `for`, `foreach`, `while`, `using`, `lock`) use braces, even for a single-statement body.
+- ❌ Do not omit braces on control flow.
+- ✅ `CancellationToken` parameters use the full name with a default: `CancellationToken cancellationToken = default`.
+- ❌ Do not abbreviate (`ct`, `token`).
+
+## Namespaces & File Organization
+- ✅ Namespace must match the file's folder path from the project root (`HealthCasePlatform.Domain/Cases/RegulatoryCase.cs` → `HealthCasePlatform.Domain.Cases`).
+- ❌ Do not use a namespace that doesn't match the file's directory path.
+- ✅ `InternalsVisibleTo` is declared in `.csproj` only (`<InternalsVisibleTo Include="Project.Tests" />`), and only for the test project that needs it.
+- ❌ Do not declare `[assembly: InternalsVisibleTo(...)]` in `.cs` / `AssemblyInfo.cs`.
+- ❌ Do not expose internals to non-test projects.
+
+## Modern C# (additions)
+- ✅ Use `ArgumentNullException.ThrowIfNull(x)` / `ArgumentOutOfRangeException.ThrowIfNegativeOrZero(x)` instead of manual null/range checks.
+- ✅ Use raw string literals (`""" ... """`) for multi-line strings and embedded JSON.
+- ✅ Use `required` on non-nullable properties of DTOs/records when the constructor isn't enforcing it.
+- ✅ Prefer `global using` directives in a dedicated `GlobalUsings.cs`.
+- ❌ Do not use the null-forgiving operator (`!`) unless absolutely certain the value is non-null.
+
+## Performance
+- ✅ All I/O is `async`/`await` and forwards `CancellationToken`.
+- ❌ Do not use blocking calls (`.Result`, `.Wait()`, `.GetAwaiter().GetResult()`) in async code.
+- ✅ Use `ValueTask<T>` when a method may complete synchronously (e.g. cache hits).
+- ✅ Materialize LINQ once (`.ToList()`) when enumerating multiple times.
+- ❌ Do not enumerate an `IEnumerable<>` multiple times.
+- ✅ Use `Any()` over `Count() > 0` for existence checks.
+- ✅ Prefer `StringBuilder` over `+` concatenation inside loops.
+- ✅ Pre-size collections when the count is known: `new List<CaseTask>(count)`.
+
+## Silent Failures — Zero Tolerance
+- ❌ Never return `null`, empty collections, or default values when a required file/resource/config is missing.
+- ❌ Never swallow an exception and return an empty/default result without logging or throwing.
+- ✅ If a file is expected but missing → throw `FileNotFoundException` with the path in the message.
+- ✅ If a config key doesn't resolve → throw `InvalidOperationException` naming the expected key.
+- ✅ Fail fast with a clear message; never silently skip processing.
+
 ## Rules
 - The rule source of truth is this file + `AGENTS.md`. If a rule here ever contradicts a doc, the doc wins — surface the conflict.
 - Never hardcode project-specific paths or behavior — read them from config or the project adapter.

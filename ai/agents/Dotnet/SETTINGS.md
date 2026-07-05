@@ -37,9 +37,22 @@ builder.Services.AddOptions<MyClientSettings>().ValidateOnStart();
 - `appsettings.Development.json` / `appsettings.Test.json` are **overrides only**.
 - **No defaults in the records.**
 
+## Connection Strings
+- ✅ Load every connection string from configuration (`appsettings*.json`) or env / user secrets — never hardcode.
+- ✅ Each connection string has its own settings type (`sealed record` + `SectionName` + `{ get; init; }`), following the same pattern as client settings (e.g. `DatabaseSettings`).
+- ❌ Do not read raw `Configuration["ConnectionStrings:..."]` inside services — bind it to a settings record first.
+
+## Startup Validation
+- ✅ Fail fast on missing external prerequisites at startup.
+- ✅ Throw project-specific exceptions that extend a system type (e.g. `InvalidOperationException`) with a clear message naming what's missing.
+- ✅ Keep startup-validation logic in the outer layer (API / Infrastructure), not in Application or Domain.
+
 ## Secrets
 - **Never in `appsettings*.json` or `.cs`.**
 - Env vars / user secrets. Nested sections use `__` → `:` (e.g. `MyClient__ApiKey`).
+- ✅ Document required secrets in a template file (`.env.example` / `appsettings.example.json`) with placeholder values — never real values.
+- ✅ In CI/CD, inject secrets via environment variables (they override local config after `AddEnvironmentVariables()`).
+- ❌ Never commit a real secrets file to git — keep it gitignored.
 
 ## Validation
 - **`ValidateOnStart()`** — fail fast at startup.

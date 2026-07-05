@@ -55,6 +55,40 @@ When the API layer (`HealthCasePlatform.Api`) and its `.Tests.Integration` proje
 - Prefer reusing the existing `<Api>Factory` over writing a new one per test class.
 - A container is fresh per fixture instance — no cross-test cleanup logic is needed; cleanup is container disposal.
 
+## Test Organization
+- ✅ One test class per source class (`RegulatoryCaseTests` for `RegulatoryCase`).
+- ✅ Test file names mirror source file names.
+- ✅ A class may contain `[Theory]` parameterized tests for multiple scenarios of the same member.
+
+## Merging & Parameterization
+- ✅ Consolidate tests that exercise the same flow with different inputs into `[Theory]` + `[InlineData]` / `[MemberData]` / `[ClassData]`.
+- ✅ Share setup via test base classes and static factory / builder methods.
+- ❌ Do not copy-paste the same test body with a different inline value — parameterize instead.
+
+## Test Naming Detail
+- ❌ Never use `Or` or `And` in test names — one test, one behavior, one assertion path (e.g. `Submit_WhenNotDraft_ReturnsConflictError`).
+- ✅ If two outcomes must be covered, write two separate tests.
+
+## Test Doubles
+- ✅ Unit tests mock dependencies with **NSubstitute**.
+- ❌ NEVER use mocks, stubs, fakes, or substitutes in integration tests — only real implementations wired through `WebApplicationFactory` / Testcontainers.
+
+## Reflection Ban
+- ❌ Never use `System.Reflection` to invoke `private` / `protected` / `internal` members (`GetMethod().Invoke`, `BindingFlags.NonPublic`, …).
+- ❌ Never make a method `public` just so a test can call it.
+- ✅ Test through the public interface, or expose internals via `<InternalsVisibleTo>` in `.csproj`.
+
+## No Silent Pass
+- ❌ Never use `if (condition) { return; }` or any early return that bypasses assertions.
+- ✅ Assert the pre-condition instead of silently returning from a test.
+
+## Timeouts
+- ✅ Integration tests: max **20 seconds** per test (`new CancellationTokenSource(TimeSpan.FromSeconds(20))`).
+- ✅ Unit tests execute under 2 seconds.
+
+## Coverage
+- ✅ Target ~90% coverage (aspirational guide to find untested paths, not a hard CI gate).
+
 ## Rules
 - No log-check assertions unless the user explicitly asks for them.
 - Never add skip logic to tests.
