@@ -54,6 +54,15 @@ public class RegulatoryCaseTests
     }
 
     [Fact]
+    public void Create_WithWhitespaceTitle_ReturnsValidationError()
+    {
+        var result = RegulatoryCase.Create("   ", "desc", Guid.NewGuid(), CasePriority.Low, "officer-1");
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.TitleEmpty.Code);
+    }
+
+    [Fact]
     public void Submit_FromDraft_ChangesStatusToSubmitted()
     {
         var sut = CreateCase();
