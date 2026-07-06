@@ -1,5 +1,6 @@
 using HealthCasePlatform.Api.Cases;
 using HealthCasePlatform.Infrastructure.Persistence;
+using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -13,6 +14,8 @@ builder.Services.AddDbContext<AppDbContext>((sp, options) =>
     var settings = sp.GetRequiredService<IOptions<DatabaseSettings>>().Value;
     options.UseSqlServer(settings.ConnectionString);
 });
+
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();

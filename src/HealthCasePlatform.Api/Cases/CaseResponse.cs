@@ -7,6 +7,7 @@ public sealed record CaseResponse(
     Guid CaseTypeId,
     string Status,
     string Priority,
+    string Country,
     string CreatedBy,
     DateTime CreatedAt,
     DateTime? UpdatedAt);

@@ -16,10 +16,16 @@ public sealed class RegulatoryCaseConfiguration : IEntityTypeConfiguration<Regul
         builder.Property(c => c.CaseTypeId).IsRequired();
         builder.Property(c => c.Status).HasConversion<int>().IsRequired();
         builder.Property(c => c.Priority).HasConversion<int>().IsRequired();
+        builder.Property(c => c.Country).IsRequired().HasMaxLength(2);
         builder.Property(c => c.CreatedBy).IsRequired().HasMaxLength(100);
         builder.Property(c => c.CreatedAt).IsRequired();
         builder.Property(c => c.UpdatedAt);
         builder.Property(c => c.Id).ValueGeneratedNever();
+
+        builder.HasIndex(c => c.Status);
+        builder.HasIndex(c => c.Priority);
+        builder.HasIndex(c => c.Country);
+        builder.HasIndex(c => new { c.CreatedAt, c.Id });
 
         builder.HasMany(c => c.Documents)
             .WithOne()

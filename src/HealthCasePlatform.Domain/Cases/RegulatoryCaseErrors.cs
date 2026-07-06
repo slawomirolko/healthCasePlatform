@@ -7,6 +7,8 @@ public static class RegulatoryCaseErrors
     public static readonly Error TitleEmpty = Error.Validation("RegulatoryCase.TitleEmpty", "Case title cannot be empty.");
     public static readonly Error CaseTypeIdEmpty = Error.Validation("RegulatoryCase.CaseTypeIdEmpty", "Case type ID cannot be empty.");
     public static readonly Error CreatedByEmpty = Error.Validation("RegulatoryCase.CreatedByEmpty", "Created by cannot be empty.");
+    public static readonly Error CountryEmpty = Error.Validation("RegulatoryCase.CountryEmpty", "Country cannot be empty.");
+    public static readonly Error CountryInvalid = Error.Validation("RegulatoryCase.CountryInvalid", "Country must be a 2-letter ISO code.");
 
     public static readonly Error NotDraft = Error.Conflict("RegulatoryCase.NotDraft", "Only a draft case can be submitted.");
     public static readonly Error NotSubmitted = Error.Conflict("RegulatoryCase.NotSubmitted", "Only a submitted case can enter review.");
