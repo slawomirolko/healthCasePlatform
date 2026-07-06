@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using HealthCasePlatform.Api.Cases;
 using HealthCasePlatform.Domain.Enums;
+using Microsoft.AspNetCore.Mvc;
 using Shouldly;
 
 namespace HealthCasePlatform.Api.Tests.Integration;
@@ -129,5 +130,66 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
+
+    [Fact]
+    public async Task SubmitCase_WhenCaseIsDraft_ReturnsSubmittedCase()
+    {
+        var request = ValidRequest();
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/cases", request);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>();
+        created.ShouldNotBeNull();
+
+        var submitResponse = await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
+
+        submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        submitResponse.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
+
+        var body = await submitResponse.Content.ReadFromJsonAsync<CaseResponse>();
+        body.ShouldNotBeNull();
+        body.Id.ShouldBe(created.Id);
+        body.Status.ShouldBe("Submitted");
+        body.UpdatedAt.ShouldNotBeNull();
+
+        var getResponse = await _client.GetAsync($"/api/v1/cases/{created.Id}");
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var persisted = await getResponse.Content.ReadFromJsonAsync<CaseResponse>();
+        persisted.ShouldNotBeNull();
+        persisted.Status.ShouldBe("Submitted");
+        persisted.UpdatedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public async Task SubmitCase_WhenCaseUnknown_Returns404()
+    {
+        var response = await _client.PostAsync($"/api/v1/cases/{Guid.NewGuid()}/submission", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
+
+    [Fact]
+    public async Task SubmitCase_WhenCaseAlreadySubmitted_Returns409()
+    {
+        var request = ValidRequest();
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/cases", request);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>();
+        created.ShouldNotBeNull();
+
+        var firstSubmit = await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
+        firstSubmit.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var secondSubmit = await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
+
+        secondSubmit.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        secondSubmit.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        var body = await secondSubmit.Content.ReadFromJsonAsync<ProblemDetails>();
+        body.ShouldNotBeNull();
+        body.Detail.ShouldBe("Only a draft case can be submitted.");
     }
 }

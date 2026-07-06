@@ -20,6 +20,9 @@ public static class CasesEndpoints
         group.MapGet("/cases", ListCases)
             .WithName("ListCases");
 
+        group.MapPost("/cases/{id:guid}/submission", SubmitCase)
+            .WithName("SubmitCase");
+
         return group;
     }
 
@@ -136,5 +139,46 @@ public static class CasesEndpoints
             entity.CreatedAt);
 
         return TypedResults.Created($"/api/v1/cases/{entity.Id}", response);
+    }
+
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> SubmitCase(
+        Guid id,
+        AppDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        var entity = await db.RegulatoryCases
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (entity is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = entity.Submit();
+        if (result.IsError)
+        {
+            var error = result.Errors[0];
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Conflict",
+                type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.8",
+                detail: error.Description);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        var response = new CaseResponse(
+            entity.Id,
+            entity.Title,
+            entity.Description,
+            entity.CaseTypeId,
+            entity.Status.ToString(),
+            entity.Priority.ToString(),
+            entity.Country,
+            entity.CreatedBy,
+            entity.CreatedAt,
+            entity.UpdatedAt);
+
+        return TypedResults.Ok(response);
     }
 }
