@@ -15,12 +15,16 @@
     <XunitRunnerVersion>3.1.4</XunitRunnerVersion>
     <CoverletVersion>6.0.4</CoverletVersion>
     <ShouldlyVersion>4.3.0</ShouldlyVersion>
+    <FluentValidationVersion>12.1.1</FluentValidationVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageVersion Include="ErrorOr" Version="2.1.1" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
     <PackageVersion Include="Testcontainers.MsSql" Version="4.13.0" />
+
+    <PackageVersion Include="FluentValidation" Version="$(FluentValidationVersion)" />
+    <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="$(FluentValidationVersion)" />
 
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="$(EfCoreVersion)" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="$(EfCoreVersion)" />

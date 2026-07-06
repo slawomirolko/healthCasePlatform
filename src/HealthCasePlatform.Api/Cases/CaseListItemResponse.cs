@@ -1,12 +1,9 @@
 namespace HealthCasePlatform.Api.Cases;
 
-public sealed record CreateCaseResponse(
+public sealed record CaseListItemResponse(
     Guid Id,
     string Title,
-    string Description,
-    Guid CaseTypeId,
+    string Country,
     string Status,
     string Priority,
-    string Country,
-    string CreatedBy,
     DateTime CreatedAt);

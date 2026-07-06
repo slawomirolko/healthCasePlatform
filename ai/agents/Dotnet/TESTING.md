@@ -53,7 +53,7 @@ When the API layer (`HealthCasePlatform.Api`) and its `.Tests.Integration` proje
 
 ### Fixture reuse
 - Prefer reusing the existing `<Api>Factory` over writing a new one per test class.
-- A container is fresh per fixture instance — no cross-test cleanup logic is needed; cleanup is container disposal.
+- A container is fresh per fixture instance (per class); tests within a class share it. Count, range, or `totalCount` assertions must either isolate in a separate test class (own fixture) or wipe/seed inside the test method (e.g. `db.RegulatoryCases.ExecuteDeleteAsync()` before seeding). Cleanup at container disposal only happens when the whole class is torn down.
 
 ## Test Organization
 - ✅ One test class per source class (`RegulatoryCaseTests` for `RegulatoryCase`).

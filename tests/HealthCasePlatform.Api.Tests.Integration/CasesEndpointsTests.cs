@@ -20,7 +20,8 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
         "Initial report",
         Guid.NewGuid(),
         CasePriority.High,
-        "officer-1");
+        "officer-1",
+        "PL");
 
     [Fact]
     public async Task CreateCase_WithValidPayload_Returns201AndCreatedCase()
@@ -42,6 +43,7 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
         body.CaseTypeId.ShouldBe(request.CaseTypeId);
         body.Priority.ShouldBe(request.Priority.ToString());
         body.CreatedBy.ShouldBe(request.CreatedBy);
+        body.Country.ShouldBe("PL");
         body.Status.ShouldBe("Draft");
         body.CreatedAt.ShouldBeGreaterThan(DateTime.MinValue);
 
@@ -67,10 +69,25 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
             description = "no title here",
             caseTypeId = Guid.NewGuid(),
             priority = CasePriority.Medium,
-            createdBy = "officer-1"
+            createdBy = "officer-1",
+            country = "PL"
         };
 
         var response = await _client.PostAsJsonAsync("/api/v1/cases", payload);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
+
+    [Theory]
+    [InlineData("POL")]
+    [InlineData("P")]
+    [InlineData("12")]
+    public async Task CreateCase_WithInvalidCountryFormat_Returns400(string country)
+    {
+        var request = ValidRequest() with { Country = country };
+
+        var response = await _client.PostAsJsonAsync("/api/v1/cases", request);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
@@ -99,6 +116,7 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
         body.CaseTypeId.ShouldBe(request.CaseTypeId);
         body.Priority.ShouldBe(request.Priority.ToString());
         body.CreatedBy.ShouldBe(request.CreatedBy);
+        body.Country.ShouldBe("PL");
         body.Status.ShouldBe("Draft");
         body.CreatedAt.ShouldBeGreaterThan(DateTime.MinValue);
         body.UpdatedAt.ShouldBeNull();

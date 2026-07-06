@@ -7,14 +7,14 @@ namespace HealthCasePlatform.Domain.Tests.Cases;
 public class RegulatoryCaseTests
 {
     private static RegulatoryCase CreateCase() =>
-        RegulatoryCase.Create("Food safety incident #42", "Initial report", Guid.NewGuid(), CasePriority.High, "officer-1").Value;
+        RegulatoryCase.Create("Food safety incident #42", "Initial report", Guid.NewGuid(), CasePriority.High, "officer-1", "PL").Value;
 
     [Fact]
     public void Create_WithValidArguments_SetsPropertiesCorrectly()
     {
         var caseTypeId = Guid.NewGuid();
 
-        var result = RegulatoryCase.Create("Title", "Desc", caseTypeId, CasePriority.Medium, "officer-1");
+        var result = RegulatoryCase.Create("Title", "Desc", caseTypeId, CasePriority.Medium, "officer-1", "PL");
 
         result.IsError.ShouldBeFalse();
         result.Value.Id.ShouldNotBe(Guid.Empty);
@@ -22,6 +22,7 @@ public class RegulatoryCaseTests
         result.Value.Description.ShouldBe("Desc");
         result.Value.CaseTypeId.ShouldBe(caseTypeId);
         result.Value.Priority.ShouldBe(CasePriority.Medium);
+        result.Value.Country.ShouldBe("PL");
         result.Value.CreatedBy.ShouldBe("officer-1");
         result.Value.CreatedAt.ShouldBeGreaterThan(DateTime.MinValue);
     }
@@ -48,7 +49,7 @@ public class RegulatoryCaseTests
     [Fact]
     public void Create_WithEmptyTitle_ReturnsValidationError()
     {
-        var result = RegulatoryCase.Create("", "desc", Guid.NewGuid(), CasePriority.Low, "officer-1");
+        var result = RegulatoryCase.Create("", "desc", Guid.NewGuid(), CasePriority.Low, "officer-1", "PL");
 
         result.IsError.ShouldBeTrue();
     }
@@ -56,10 +57,33 @@ public class RegulatoryCaseTests
     [Fact]
     public void Create_WithWhitespaceTitle_ReturnsValidationError()
     {
-        var result = RegulatoryCase.Create("   ", "desc", Guid.NewGuid(), CasePriority.Low, "officer-1");
+        var result = RegulatoryCase.Create("   ", "desc", Guid.NewGuid(), CasePriority.Low, "officer-1", "PL");
 
         result.IsError.ShouldBeTrue();
         result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.TitleEmpty.Code);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Create_WithEmptyCountry_ReturnsCountryEmptyError(string country)
+    {
+        var result = RegulatoryCase.Create("Title", "desc", Guid.NewGuid(), CasePriority.Low, "officer-1", country);
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.CountryEmpty.Code);
+    }
+
+    [Theory]
+    [InlineData("POL")]
+    [InlineData("P")]
+    [InlineData("12")]
+    public void Create_WithNonTwoLetterCountry_ReturnsCountryInvalidError(string country)
+    {
+        var result = RegulatoryCase.Create("Title", "desc", Guid.NewGuid(), CasePriority.Low, "officer-1", country);
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.CountryInvalid.Code);
     }
 
     [Fact]

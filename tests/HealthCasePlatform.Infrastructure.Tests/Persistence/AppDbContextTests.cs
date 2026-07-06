@@ -31,7 +31,7 @@ public sealed class AppDbContextTests : IDisposable
     public async Task SaveChanges_NewCase_CanBeRetrievedById()
     {
         var caseTypeId = Guid.CreateVersion7();
-        var regulatoryCase = RegulatoryCase.Create("Title", "Description", caseTypeId, CasePriority.High, "creator").Value;
+        var regulatoryCase = RegulatoryCase.Create("Title", "Description", caseTypeId, CasePriority.High, "creator", "PL").Value;
 
         await using (var write = CreateContext())
         {
@@ -46,12 +46,13 @@ public sealed class AppDbContextTests : IDisposable
         loaded.Title.ShouldBe("Title");
         loaded.Status.ShouldBe(CaseStatus.Draft);
         loaded.CaseTypeId.ShouldBe(caseTypeId);
+        loaded.Country.ShouldBe("PL");
     }
 
     [Fact]
     public async Task SaveChanges_CaseWithDocuments_ReloadsDocumentsFromBackingField()
     {
-        var regulatoryCase = RegulatoryCase.Create("Title", "Description", Guid.CreateVersion7(), CasePriority.Medium, "creator").Value;
+        var regulatoryCase = RegulatoryCase.Create("Title", "Description", Guid.CreateVersion7(), CasePriority.Medium, "creator", "PL").Value;
         var first = CaseDocument.Create(regulatoryCase.Id, "a.pdf", "application/pdf", "blob/a", "uploader").Value;
         var second = CaseDocument.Create(regulatoryCase.Id, "b.pdf", "application/pdf", "blob/b", "uploader").Value;
         regulatoryCase.AddDocument(first);
@@ -76,7 +77,7 @@ public sealed class AppDbContextTests : IDisposable
     [Fact]
     public async Task SaveChanges_CaseWithTasksAndCommentsAndDecisions_ReloadsAllChildren()
     {
-        var regulatoryCase = RegulatoryCase.Create("Title", "Description", Guid.CreateVersion7(), CasePriority.Low, "creator").Value;
+        var regulatoryCase = RegulatoryCase.Create("Title", "Description", Guid.CreateVersion7(), CasePriority.Low, "creator", "PL").Value;
         regulatoryCase.AddTask(CaseTask.Create(regulatoryCase.Id, "Review", "assignee").Value);
         regulatoryCase.AddComment(Comment.Create(regulatoryCase.Id, "Looks good", "author").Value);
         regulatoryCase.RecordDecision(Decision.Create(regulatoryCase.Id, "Approved", "decider").Value);
@@ -124,7 +125,7 @@ public sealed class AppDbContextTests : IDisposable
     [Fact]
     public async Task SaveChanges_CaseStatusAndPriority_PersistAsExpectedEnumValues()
     {
-        var regulatoryCase = RegulatoryCase.Create("Title", "Description", Guid.CreateVersion7(), CasePriority.Critical, "creator").Value;
+        var regulatoryCase = RegulatoryCase.Create("Title", "Description", Guid.CreateVersion7(), CasePriority.Critical, "creator", "PL").Value;
         regulatoryCase.Submit().IsError.ShouldBeFalse();
 
         await using (var write = CreateContext())
@@ -139,5 +140,6 @@ public sealed class AppDbContextTests : IDisposable
         loaded.ShouldNotBeNull();
         loaded.Status.ShouldBe(CaseStatus.Submitted);
         loaded.Priority.ShouldBe(CasePriority.Critical);
+        loaded.Country.ShouldBe("PL");
     }
 }

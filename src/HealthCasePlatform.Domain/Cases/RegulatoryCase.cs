@@ -23,6 +23,7 @@ public sealed class RegulatoryCase : Entity
     public Guid CaseTypeId { get; private set; }
     public CaseStatus Status { get; private set; }
     public CasePriority Priority { get; private set; }
+    public string Country { get; private set; }
     public string CreatedBy { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
@@ -34,7 +35,7 @@ public sealed class RegulatoryCase : Entity
 
     private RegulatoryCase() { }
 
-    public static ErrorOr<RegulatoryCase> Create(string title, string description, Guid caseTypeId, CasePriority priority, string createdBy)
+    public static ErrorOr<RegulatoryCase> Create(string title, string description, Guid caseTypeId, CasePriority priority, string createdBy, string country)
     {
         if (string.IsNullOrWhiteSpace(title))
         {
@@ -51,6 +52,17 @@ public sealed class RegulatoryCase : Entity
             return RegulatoryCaseErrors.CreatedByEmpty;
         }
 
+        if (string.IsNullOrWhiteSpace(country))
+        {
+            return RegulatoryCaseErrors.CountryEmpty;
+        }
+
+        var normalizedCountry = country.Trim().ToUpperInvariant();
+        if (normalizedCountry.Length != 2 || !normalizedCountry.All(char.IsLetter))
+        {
+            return RegulatoryCaseErrors.CountryInvalid;
+        }
+
         return new RegulatoryCase
         {
             Id = Guid.CreateVersion7(),
@@ -58,6 +70,7 @@ public sealed class RegulatoryCase : Entity
             Description = description ?? string.Empty,
             CaseTypeId = caseTypeId,
             Priority = priority,
+            Country = normalizedCountry,
             CreatedBy = createdBy,
             Status = CaseStatus.Draft,
             CreatedAt = DateTime.UtcNow,
