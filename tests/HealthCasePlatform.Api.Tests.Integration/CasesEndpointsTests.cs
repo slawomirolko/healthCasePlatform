@@ -75,4 +75,41 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
     }
+
+    [Fact]
+    public async Task GetCase_WhenCaseExists_ReturnsCase()
+    {
+        var request = ValidRequest();
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/cases", request);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>();
+        created.ShouldNotBeNull();
+
+        var getResponse = await _client.GetAsync($"/api/v1/cases/{created.Id}");
+
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        getResponse.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
+
+        var body = await getResponse.Content.ReadFromJsonAsync<CaseResponse>();
+        body.ShouldNotBeNull();
+        body.Id.ShouldBe(created.Id);
+        body.Title.ShouldBe(request.Title);
+        body.Description.ShouldBe(request.Description ?? string.Empty);
+        body.CaseTypeId.ShouldBe(request.CaseTypeId);
+        body.Priority.ShouldBe(request.Priority.ToString());
+        body.CreatedBy.ShouldBe(request.CreatedBy);
+        body.Status.ShouldBe("Draft");
+        body.CreatedAt.ShouldBeGreaterThan(DateTime.MinValue);
+        body.UpdatedAt.ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task GetCase_WhenCaseUnknown_Returns404()
+    {
+        var response = await _client.GetAsync($"/api/v1/cases/{Guid.NewGuid()}");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
 }
