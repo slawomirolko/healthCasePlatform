@@ -1,6 +1,7 @@
 using HealthCasePlatform.Domain.Cases;
 using HealthCasePlatform.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 
 namespace HealthCasePlatform.Api.Cases;
 
@@ -11,7 +12,38 @@ public static class CasesEndpoints
         group.MapPost("/cases", CreateCase)
             .WithName("CreateCase");
 
+        group.MapGet("/cases/{id:guid}", GetCase)
+            .WithName("GetCase");
+
         return group;
+    }
+
+    private static async Task<Results<Ok<CaseResponse>, NotFound>> GetCase(
+        Guid id,
+        AppDbContext db,
+        CancellationToken cancellationToken)
+    {
+        var entity = await db.RegulatoryCases
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (entity is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var response = new CaseResponse(
+            entity.Id,
+            entity.Title,
+            entity.Description,
+            entity.CaseTypeId,
+            entity.Status.ToString(),
+            entity.Priority.ToString(),
+            entity.CreatedBy,
+            entity.CreatedAt,
+            entity.UpdatedAt);
+
+        return TypedResults.Ok(response);
     }
 
     private static async Task<Results<Created<CreateCaseResponse>, ValidationProblem>> CreateCase(
