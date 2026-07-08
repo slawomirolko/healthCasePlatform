@@ -89,6 +89,18 @@ public sealed class RegulatoryCase : Entity
     public ErrorOr<Success> StartScientificReview()
         => Transition(CaseStatus.Submitted, CaseStatus.UnderScientificReview, RegulatoryCaseErrors.NotSubmitted);
 
+    public ErrorOr<Success> StartLegalReview()
+        => Transition(CaseStatus.UnderScientificReview, CaseStatus.UnderLegalReview, RegulatoryCaseErrors.NotUnderScientificReview);
+
+    public ErrorOr<Success> RequestDecision()
+        => Transition(CaseStatus.UnderLegalReview, CaseStatus.PendingDecision, RegulatoryCaseErrors.NotUnderLegalReview);
+
+    public ErrorOr<Success> Approve()
+        => Transition(CaseStatus.PendingDecision, CaseStatus.Approved, RegulatoryCaseErrors.NotPendingDecision);
+
+    public ErrorOr<Success> Reject()
+        => Transition(CaseStatus.PendingDecision, CaseStatus.Rejected, RegulatoryCaseErrors.NotPendingDecision);
+
     public void ChangePriority(CasePriority newPriority)
     {
         Priority = newPriority;
@@ -160,6 +172,11 @@ public sealed class RegulatoryCase : Entity
 
     private ErrorOr<Success> Transition(CaseStatus expectedCurrent, CaseStatus target, Error onMismatch)
     {
+        if (TerminalStatuses.Contains(Status))
+        {
+            return RegulatoryCaseErrors.InTerminalState;
+        }
+
         if (Status != expectedCurrent)
         {
             return onMismatch;

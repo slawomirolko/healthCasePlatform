@@ -24,6 +24,54 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
         "officer-1",
         "PL");
 
+    private async Task<CreateCaseResponse> CreateCaseAsync()
+    {
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/cases", ValidRequest());
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        return (await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>())!;
+    }
+
+    private async Task BringCaseToStateAsync(Guid caseId, CaseStatus target)
+    {
+        await _client.PostAsync($"/api/v1/cases/{caseId}/submission", content: null);
+        if (target == CaseStatus.Submitted)
+        {
+            return;
+        }
+
+        await _client.PostAsync($"/api/v1/cases/{caseId}/scientific-review", content: null);
+        if (target == CaseStatus.UnderScientificReview)
+        {
+            return;
+        }
+
+        await _client.PostAsync($"/api/v1/cases/{caseId}/legal-review", content: null);
+        if (target == CaseStatus.UnderLegalReview)
+        {
+            return;
+        }
+
+        await _client.PostAsync($"/api/v1/cases/{caseId}/decision-request", content: null);
+        if (target == CaseStatus.PendingDecision)
+        {
+            return;
+        }
+
+        if (target == CaseStatus.Approved)
+        {
+            await _client.PostAsync($"/api/v1/cases/{caseId}/approval", content: null);
+            return;
+        }
+
+        if (target == CaseStatus.Rejected)
+        {
+            await _client.PostAsync($"/api/v1/cases/{caseId}/rejection", content: null);
+            return;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(target), $"Unsupported target status for test arrange: {target}");
+    }
+
     [Fact]
     public async Task CreateCase_WithValidPayload_Returns201AndCreatedCase()
     {
@@ -305,6 +353,111 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
     public async Task GetCaseHistory_WhenCaseUnknown_Returns404()
     {
         var response = await _client.GetAsync($"/api/v1/cases/{Guid.NewGuid()}/history");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
+
+    [Fact]
+    public async Task FullScientificReviewTrack_WhenApproved_EndsInApprovedStatus()
+    {
+        var created = await CreateCaseAsync();
+        await BringCaseToStateAsync(created.Id, CaseStatus.Approved);
+
+        var getResponse = await _client.GetAsync($"/api/v1/cases/{created.Id}");
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await getResponse.Content.ReadFromJsonAsync<CaseResponse>();
+        body.ShouldNotBeNull();
+        body.Status.ShouldBe("Approved");
+
+        var historyResponse = await _client.GetAsync($"/api/v1/cases/{created.Id}/history");
+        historyResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var history = await historyResponse.Content.ReadFromJsonAsync<List<CaseStatusHistoryResponse>>();
+        history.ShouldNotBeNull();
+        history.Count.ShouldBe(5);
+    }
+
+    [Fact]
+    public async Task FullScientificReviewTrack_WhenRejected_EndsInRejectedStatus()
+    {
+        var created = await CreateCaseAsync();
+        await BringCaseToStateAsync(created.Id, CaseStatus.Rejected);
+
+        var getResponse = await _client.GetAsync($"/api/v1/cases/{created.Id}");
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var body = await getResponse.Content.ReadFromJsonAsync<CaseResponse>();
+        body.ShouldNotBeNull();
+        body.Status.ShouldBe("Rejected");
+    }
+
+    [Fact]
+    public async Task StartLegalReview_WhenCaseIsSubmitted_Returns409()
+    {
+        var created = await CreateCaseAsync();
+        await BringCaseToStateAsync(created.Id, CaseStatus.Submitted);
+
+        var response = await _client.PostAsync($"/api/v1/cases/{created.Id}/legal-review", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        body.ShouldNotBeNull();
+        body.Detail.ShouldBe("Only a case under scientific review can start legal review.");
+    }
+
+    [Fact]
+    public async Task RequestDecision_WhenCaseIsUnderScientificReview_Returns409()
+    {
+        var created = await CreateCaseAsync();
+        await BringCaseToStateAsync(created.Id, CaseStatus.UnderScientificReview);
+
+        var response = await _client.PostAsync($"/api/v1/cases/{created.Id}/decision-request", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        body.ShouldNotBeNull();
+        body.Detail.ShouldBe("Only a case under legal review can be advanced to decision.");
+    }
+
+    [Fact]
+    public async Task Approve_WhenCaseIsUnderLegalReview_Returns409()
+    {
+        var created = await CreateCaseAsync();
+        await BringCaseToStateAsync(created.Id, CaseStatus.UnderLegalReview);
+
+        var response = await _client.PostAsync($"/api/v1/cases/{created.Id}/approval", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        body.ShouldNotBeNull();
+        body.Detail.ShouldBe("Only a case pending decision can be approved or rejected.");
+    }
+
+    [Fact]
+    public async Task Reject_WhenCaseIsUnderLegalReview_Returns409()
+    {
+        var created = await CreateCaseAsync();
+        await BringCaseToStateAsync(created.Id, CaseStatus.UnderLegalReview);
+
+        var response = await _client.PostAsync($"/api/v1/cases/{created.Id}/rejection", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        body.ShouldNotBeNull();
+        body.Detail.ShouldBe("Only a case pending decision can be approved or rejected.");
+    }
+
+    [Theory]
+    [InlineData("/legal-review")]
+    [InlineData("/decision-request")]
+    [InlineData("/approval")]
+    [InlineData("/rejection")]
+    public async Task TransitionEndpoint_WhenCaseUnknown_Returns404(string segment)
+    {
+        var response = await _client.PostAsync($"/api/v1/cases/{Guid.NewGuid()}{segment}", content: null);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");

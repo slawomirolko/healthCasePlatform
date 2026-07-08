@@ -9,5 +9,6 @@ public enum CaseStatus
     Approved = 5,
     Rejected = 6,
     Archived = 7,
-    UnderScientificReview = 8
+    UnderScientificReview = 8,
+    UnderLegalReview = 9
 }
