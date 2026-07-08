@@ -36,6 +36,7 @@ See `ai/agents/Dotnet/SETTINGS.md` for the typed-settings (Options) pattern: rec
 - Test: `dotnet test`
 - Style: `dotnet format --verify-no-changes --no-restore`
 - **Integration tests (`*.Tests.Integration`):** require Docker engine running — they spin up real dependencies (SQL Server) via Testcontainers. See `ai/agents/Dotnet/TESTING.md` → *Integration Test Infrastructure*.
+- **Local dev DB:** run `docker compose up -d` (starts the SQL Server 2022 container on `localhost:1433`), then export `Database__ConnectionString` (template value in `.env.example`) before `dotnet run`. The API binds `DatabaseSettings:ConnectionString` from this env var; with it unset, startup crashes at `MigrateAsync` (`Program.cs:51`). Override for any non-local environment via the same env var.
 
 ### Domain quirks (non-inferable)
 - **`RegulatoryCase.ChangeStatus(CaseStatus)` escape hatch:** public transition method with **no endpoint**; tested only for history appending (`ChangeStatus_AppendsHistoryEntryWithFromCurrentToNew`), not for invalid-transition/terminal blocking. Permits arbitrary non-terminal status jumps (e.g. `Draft`→`Approved`, skipping the workflow). Do not wire it to an endpoint without first restricting it or replacing it with explicit terminal transitions (`Approve`/`Reject`/`Archive`).

@@ -1,31 +1,21 @@
 using HealthCasePlatform.Domain.Cases;
 using HealthCasePlatform.Domain.Enums;
 using HealthCasePlatform.Infrastructure.Persistence;
-using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Shouldly;
 
-namespace HealthCasePlatform.Infrastructure.Tests.Persistence;
+namespace HealthCasePlatform.Infrastructure.Tests.Integration.Persistence;
 
-public sealed class AppDbContextTests : IDisposable
+public sealed class AppDbContextTests : IClassFixture<DbFixture>
 {
-    private readonly SqliteConnection _connection;
-    private readonly DbContextOptions<AppDbContext> _options;
+    private readonly DbFixture _fixture;
 
-    public AppDbContextTests()
+    public AppDbContextTests(DbFixture fixture)
     {
-        _connection = new SqliteConnection("DataSource=:memory:");
-        _connection.Open();
-        _options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlite(_connection)
-            .Options;
-        using var seed = CreateContext();
-        seed.Database.EnsureCreated();
+        _fixture = fixture;
     }
 
-    public void Dispose() => _connection.Dispose();
-
-    private AppDbContext CreateContext() => new(_options);
+    private AppDbContext CreateContext() => _fixture.CreateContext();
 
     [Fact]
     public async Task SaveChanges_NewCase_CanBeRetrievedById()
