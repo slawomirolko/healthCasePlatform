@@ -9,6 +9,53 @@ public class RegulatoryCaseTests
     private static RegulatoryCase CreateCase() =>
         RegulatoryCase.Create("Food safety incident #42", "Initial report", Guid.NewGuid(), CasePriority.High, "officer-1", "PL").Value;
 
+    private static RegulatoryCase BringCaseTo(CaseStatus target)
+    {
+        var sut = CreateCase();
+        if (target == CaseStatus.Draft)
+        {
+            return sut;
+        }
+
+        sut.Submit().IsError.ShouldBeFalse();
+        if (target == CaseStatus.Submitted)
+        {
+            return sut;
+        }
+
+        sut.StartScientificReview().IsError.ShouldBeFalse();
+        if (target == CaseStatus.UnderScientificReview)
+        {
+            return sut;
+        }
+
+        sut.StartLegalReview().IsError.ShouldBeFalse();
+        if (target == CaseStatus.UnderLegalReview)
+        {
+            return sut;
+        }
+
+        sut.RequestDecision().IsError.ShouldBeFalse();
+        if (target == CaseStatus.PendingDecision)
+        {
+            return sut;
+        }
+
+        if (target == CaseStatus.Approved)
+        {
+            sut.Approve().IsError.ShouldBeFalse();
+            return sut;
+        }
+
+        if (target == CaseStatus.Rejected)
+        {
+            sut.Reject().IsError.ShouldBeFalse();
+            return sut;
+        }
+
+        throw new ArgumentOutOfRangeException(nameof(target), $"Unsupported target status for test factory: {target}");
+    }
+
     [Fact]
     public void Create_WithValidArguments_SetsPropertiesCorrectly()
     {
@@ -287,5 +334,166 @@ public class RegulatoryCaseTests
         sut.Submit();
 
         sut.History[^1].TransitionedAt.ShouldBe(sut.UpdatedAt!.Value);
+    }
+
+    [Fact]
+    public void StartLegalReview_FromUnderScientificReview_ChangesStatusToUnderLegalReview()
+    {
+        var sut = BringCaseTo(CaseStatus.UnderScientificReview);
+
+        var result = sut.StartLegalReview();
+
+        result.IsError.ShouldBeFalse();
+        sut.Status.ShouldBe(CaseStatus.UnderLegalReview);
+        sut.UpdatedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void RequestDecision_FromUnderLegalReview_ChangesStatusToPendingDecision()
+    {
+        var sut = BringCaseTo(CaseStatus.UnderLegalReview);
+
+        var result = sut.RequestDecision();
+
+        result.IsError.ShouldBeFalse();
+        sut.Status.ShouldBe(CaseStatus.PendingDecision);
+        sut.UpdatedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Approve_FromPendingDecision_ChangesStatusToApproved()
+    {
+        var sut = BringCaseTo(CaseStatus.PendingDecision);
+
+        var result = sut.Approve();
+
+        result.IsError.ShouldBeFalse();
+        sut.Status.ShouldBe(CaseStatus.Approved);
+        sut.UpdatedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void Reject_FromPendingDecision_ChangesStatusToRejected()
+    {
+        var sut = BringCaseTo(CaseStatus.PendingDecision);
+
+        var result = sut.Reject();
+
+        result.IsError.ShouldBeFalse();
+        sut.Status.ShouldBe(CaseStatus.Rejected);
+        sut.UpdatedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void StartLegalReview_WhenNotUnderScientificReview_ReturnsConflictError()
+    {
+        var sut = BringCaseTo(CaseStatus.Submitted);
+
+        var result = sut.StartLegalReview();
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.NotUnderScientificReview.Code);
+    }
+
+    [Fact]
+    public void RequestDecision_WhenNotUnderLegalReview_ReturnsConflictError()
+    {
+        var sut = BringCaseTo(CaseStatus.UnderScientificReview);
+
+        var result = sut.RequestDecision();
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.NotUnderLegalReview.Code);
+    }
+
+    [Fact]
+    public void Approve_WhenNotPendingDecision_ReturnsConflictError()
+    {
+        var sut = BringCaseTo(CaseStatus.UnderLegalReview);
+
+        var result = sut.Approve();
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.NotPendingDecision.Code);
+    }
+
+    [Fact]
+    public void Reject_WhenNotPendingDecision_ReturnsConflictError()
+    {
+        var sut = BringCaseTo(CaseStatus.UnderLegalReview);
+
+        var result = sut.Reject();
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.NotPendingDecision.Code);
+    }
+
+    [Fact]
+    public void Approve_WhenAlreadyApproved_ReturnsInTerminalStateError()
+    {
+        var sut = BringCaseTo(CaseStatus.Approved);
+
+        var result = sut.Approve();
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.InTerminalState.Code);
+    }
+
+    [Fact]
+    public void Reject_WhenAlreadyRejected_ReturnsInTerminalStateError()
+    {
+        var sut = BringCaseTo(CaseStatus.Rejected);
+
+        var result = sut.Reject();
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.InTerminalState.Code);
+    }
+
+    public static IEnumerable<object[]> TransitionHistoryCases =>
+    [
+        [CaseStatus.UnderScientificReview, nameof(RegulatoryCase.StartLegalReview), CaseStatus.UnderLegalReview],
+        [CaseStatus.UnderLegalReview, nameof(RegulatoryCase.RequestDecision), CaseStatus.PendingDecision],
+        [CaseStatus.PendingDecision, nameof(RegulatoryCase.Approve), CaseStatus.Approved],
+        [CaseStatus.PendingDecision, nameof(RegulatoryCase.Reject), CaseStatus.Rejected]
+    ];
+
+    [Theory]
+    [MemberData(nameof(TransitionHistoryCases))]
+    public void Transitions_AppendHistoryEntryWithCorrectFromAndTo(
+        CaseStatus preState, string transition, CaseStatus expectedTo)
+    {
+        var sut = BringCaseTo(preState);
+
+        var result = transition switch
+        {
+            nameof(RegulatoryCase.StartLegalReview) => sut.StartLegalReview(),
+            nameof(RegulatoryCase.RequestDecision) => sut.RequestDecision(),
+            nameof(RegulatoryCase.Approve) => sut.Approve(),
+            nameof(RegulatoryCase.Reject) => sut.Reject(),
+            _ => throw new ArgumentOutOfRangeException(nameof(transition))
+        };
+
+        result.IsError.ShouldBeFalse();
+        sut.History[^1].FromStatus.ShouldBe(preState);
+        sut.History[^1].ToStatus.ShouldBe(expectedTo);
+    }
+
+    [Fact]
+    public void FullScientificTrack_FromDraftToApproved_RecordsChronologicalHistory()
+    {
+        var sut = CreateCase();
+        sut.Submit();
+        sut.StartScientificReview();
+        sut.StartLegalReview();
+        sut.RequestDecision();
+        sut.Approve();
+
+        sut.Status.ShouldBe(CaseStatus.Approved);
+        sut.History.Count.ShouldBe(5);
+        for (var i = 1; i < sut.History.Count; i++)
+        {
+            sut.History[i].TransitionedAt.ShouldBeGreaterThanOrEqualTo(sut.History[i - 1].TransitionedAt);
+        }
     }
 }
