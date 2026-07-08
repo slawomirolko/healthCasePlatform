@@ -54,5 +54,12 @@ public sealed class RegulatoryCaseConfiguration : IEntityTypeConfiguration<Regul
             .OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(c => c.Decisions)
             .UsePropertyAccessMode(PropertyAccessMode.Field);
+
+        builder.HasMany(c => c.History)
+            .WithOne()
+            .HasForeignKey(h => h.CaseId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation(c => c.History)
+            .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }

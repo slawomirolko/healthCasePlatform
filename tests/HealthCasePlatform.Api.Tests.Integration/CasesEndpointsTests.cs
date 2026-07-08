@@ -192,4 +192,121 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
         body.ShouldNotBeNull();
         body.Detail.ShouldBe("Only a draft case can be submitted.");
     }
+
+    [Fact]
+    public async Task StartScientificReview_WhenCaseIsSubmitted_ReturnsUnderScientificReviewCase()
+    {
+        var request = ValidRequest();
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/cases", request);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>();
+        created.ShouldNotBeNull();
+
+        var submitResponse = await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
+        submitResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var response = await _client.PostAsync($"/api/v1/cases/{created.Id}/scientific-review", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
+
+        var body = await response.Content.ReadFromJsonAsync<CaseResponse>();
+        body.ShouldNotBeNull();
+        body.Id.ShouldBe(created.Id);
+        body.Status.ShouldBe("UnderScientificReview");
+        body.UpdatedAt.ShouldNotBeNull();
+
+        var getResponse = await _client.GetAsync($"/api/v1/cases/{created.Id}");
+        getResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var persisted = await getResponse.Content.ReadFromJsonAsync<CaseResponse>();
+        persisted.ShouldNotBeNull();
+        persisted.Status.ShouldBe("UnderScientificReview");
+    }
+
+    [Fact]
+    public async Task StartScientificReview_WhenCaseUnknown_Returns404()
+    {
+        var response = await _client.PostAsync($"/api/v1/cases/{Guid.NewGuid()}/scientific-review", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
+
+    [Fact]
+    public async Task StartScientificReview_WhenCaseIsDraft_Returns409()
+    {
+        var request = ValidRequest();
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/cases", request);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>();
+        created.ShouldNotBeNull();
+
+        var response = await _client.PostAsync($"/api/v1/cases/{created.Id}/scientific-review", content: null);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+
+        var body = await response.Content.ReadFromJsonAsync<ProblemDetails>();
+        body.ShouldNotBeNull();
+        body.Detail.ShouldBe("Only a submitted case can enter review.");
+    }
+
+    [Fact]
+    public async Task StartScientificReview_PersistsHistoryEntry()
+    {
+        var request = ValidRequest();
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/cases", request);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>();
+        created.ShouldNotBeNull();
+
+        await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
+        await _client.PostAsync($"/api/v1/cases/{created.Id}/scientific-review", content: null);
+
+        var historyResponse = await _client.GetAsync($"/api/v1/cases/{created.Id}/history");
+        historyResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var history = await historyResponse.Content.ReadFromJsonAsync<List<CaseStatusHistoryResponse>>();
+        history.ShouldNotBeNull();
+        history.ShouldContain(h => h.FromStatus == "Submitted" && h.ToStatus == "UnderScientificReview");
+    }
+
+    [Fact]
+    public async Task GetCaseHistory_WhenCaseExists_ReturnsChronologicalHistory()
+    {
+        var request = ValidRequest();
+        var createResponse = await _client.PostAsJsonAsync("/api/v1/cases", request);
+        createResponse.StatusCode.ShouldBe(HttpStatusCode.Created);
+        var created = await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>();
+        created.ShouldNotBeNull();
+
+        await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
+        await _client.PostAsync($"/api/v1/cases/{created.Id}/scientific-review", content: null);
+
+        var response = await _client.GetAsync($"/api/v1/cases/{created.Id}/history");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/json");
+
+        var history = await response.Content.ReadFromJsonAsync<List<CaseStatusHistoryResponse>>();
+        history.ShouldNotBeNull();
+        history.Count.ShouldBe(2);
+        history[0].FromStatus.ShouldBe("Draft");
+        history[0].ToStatus.ShouldBe("Submitted");
+        history[^1].FromStatus.ShouldBe("Submitted");
+        history[^1].ToStatus.ShouldBe("UnderScientificReview");
+        for (var i = 1; i < history.Count; i++)
+        {
+            history[i].TransitionedAt.ShouldBeGreaterThanOrEqualTo(history[i - 1].TransitionedAt);
+        }
+    }
+
+    [Fact]
+    public async Task GetCaseHistory_WhenCaseUnknown_Returns404()
+    {
+        var response = await _client.GetAsync($"/api/v1/cases/{Guid.NewGuid()}/history");
+
+        response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
+    }
 }

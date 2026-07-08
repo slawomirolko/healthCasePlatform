@@ -17,6 +17,7 @@ public sealed class RegulatoryCase : Entity
     private readonly List<CaseTask> _tasks = [];
     private readonly List<Comment> _comments = [];
     private readonly List<Decision> _decisions = [];
+    private readonly List<CaseStatusHistory> _history = [];
 
     public string Title { get; private set; }
     public string Description { get; private set; }
@@ -32,6 +33,7 @@ public sealed class RegulatoryCase : Entity
     public IReadOnlyList<CaseTask> Tasks => _tasks;
     public IReadOnlyList<Comment> Comments => _comments;
     public IReadOnlyList<Decision> Decisions => _decisions;
+    public IReadOnlyList<CaseStatusHistory> History => _history;
 
     private RegulatoryCase() { }
 
@@ -79,28 +81,13 @@ public sealed class RegulatoryCase : Entity
     }
 
     public ErrorOr<Success> Submit()
-    {
-        if (Status != CaseStatus.Draft)
-        {
-            return RegulatoryCaseErrors.NotDraft;
-        }
-
-        Status = CaseStatus.Submitted;
-        UpdatedAt = DateTime.UtcNow;
-        return Result.Success;
-    }
+        => Transition(CaseStatus.Draft, CaseStatus.Submitted, RegulatoryCaseErrors.NotDraft);
 
     public ErrorOr<Success> StartReview()
-    {
-        if (Status != CaseStatus.Submitted)
-        {
-            return RegulatoryCaseErrors.NotSubmitted;
-        }
+        => Transition(CaseStatus.Submitted, CaseStatus.UnderReview, RegulatoryCaseErrors.NotSubmitted);
 
-        Status = CaseStatus.UnderReview;
-        UpdatedAt = DateTime.UtcNow;
-        return Result.Success;
-    }
+    public ErrorOr<Success> StartScientificReview()
+        => Transition(CaseStatus.Submitted, CaseStatus.UnderScientificReview, RegulatoryCaseErrors.NotSubmitted);
 
     public void ChangePriority(CasePriority newPriority)
     {
@@ -115,8 +102,10 @@ public sealed class RegulatoryCase : Entity
             return RegulatoryCaseErrors.InTerminalState;
         }
 
+        var now = DateTime.UtcNow;
+        RecordTransition(newStatus, now);
         Status = newStatus;
-        UpdatedAt = DateTime.UtcNow;
+        UpdatedAt = now;
         return Result.Success;
     }
 
@@ -161,6 +150,25 @@ public sealed class RegulatoryCase : Entity
         }
 
         _decisions.Add(decision);
+        return Result.Success;
+    }
+
+    private void RecordTransition(CaseStatus toStatus, DateTime at)
+    {
+        _history.Add(CaseStatusHistory.Create(Id, Status, toStatus, at));
+    }
+
+    private ErrorOr<Success> Transition(CaseStatus expectedCurrent, CaseStatus target, Error onMismatch)
+    {
+        if (Status != expectedCurrent)
+        {
+            return onMismatch;
+        }
+
+        var now = DateTime.UtcNow;
+        RecordTransition(target, now);
+        Status = target;
+        UpdatedAt = now;
         return Result.Success;
     }
 }

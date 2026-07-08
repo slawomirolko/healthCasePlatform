@@ -23,6 +23,12 @@ public static class CasesEndpoints
         group.MapPost("/cases/{id:guid}/submission", SubmitCase)
             .WithName("SubmitCase");
 
+        group.MapPost("/cases/{id:guid}/scientific-review", StartScientificReview)
+            .WithName("StartScientificReview");
+
+        group.MapGet("/cases/{id:guid}/history", GetCaseHistory)
+            .WithName("GetCaseHistory");
+
         return group;
     }
 
@@ -180,5 +186,75 @@ public static class CasesEndpoints
             entity.UpdatedAt);
 
         return TypedResults.Ok(response);
+    }
+
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartScientificReview(
+        Guid id,
+        AppDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        var entity = await db.RegulatoryCases
+            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+
+        if (entity is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var result = entity.StartScientificReview();
+        if (result.IsError)
+        {
+            var error = result.Errors[0];
+            return TypedResults.Problem(
+                statusCode: StatusCodes.Status409Conflict,
+                title: "Conflict",
+                type: "https://datatracker.ietf.org/doc/html/rfc7231#section-6.5.8",
+                detail: error.Description);
+        }
+
+        await db.SaveChangesAsync(cancellationToken);
+
+        var response = new CaseResponse(
+            entity.Id,
+            entity.Title,
+            entity.Description,
+            entity.CaseTypeId,
+            entity.Status.ToString(),
+            entity.Priority.ToString(),
+            entity.Country,
+            entity.CreatedBy,
+            entity.CreatedAt,
+            entity.UpdatedAt);
+
+        return TypedResults.Ok(response);
+    }
+
+    private static async Task<Results<Ok<IReadOnlyList<CaseStatusHistoryResponse>>, NotFound>> GetCaseHistory(
+        Guid id,
+        AppDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        var exists = await db.RegulatoryCases
+            .AsNoTracking()
+            .AnyAsync(c => c.Id == id, cancellationToken);
+
+        if (!exists)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var history = await db.CaseStatusHistories
+            .AsNoTracking()
+            .Where(h => h.CaseId == id)
+            .OrderBy(h => h.TransitionedAt)
+            .Select(h => new CaseStatusHistoryResponse(
+                h.Id,
+                h.CaseId,
+                h.FromStatus.ToString(),
+                h.ToStatus.ToString(),
+                h.TransitionedAt))
+            .ToListAsync(cancellationToken);
+
+        return TypedResults.Ok((IReadOnlyList<CaseStatusHistoryResponse>)history);
     }
 }

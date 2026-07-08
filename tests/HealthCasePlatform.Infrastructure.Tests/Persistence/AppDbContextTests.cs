@@ -142,4 +142,27 @@ public sealed class AppDbContextTests : IDisposable
         loaded.Priority.ShouldBe(CasePriority.Critical);
         loaded.Country.ShouldBe("PL");
     }
+
+    [Fact]
+    public async Task SaveChanges_CaseWithHistory_ReloadsHistoryFromBackingField()
+    {
+        var regulatoryCase = RegulatoryCase.Create("Title", "Description", Guid.CreateVersion7(), CasePriority.Medium, "creator", "PL").Value;
+        regulatoryCase.Submit();
+        regulatoryCase.StartReview();
+
+        await using (var write = CreateContext())
+        {
+            await write.RegulatoryCases.AddAsync(regulatoryCase);
+            await write.SaveChangesAsync();
+        }
+
+        await using var read = CreateContext();
+        var loaded = await read.RegulatoryCases
+            .Include(c => c.History)
+            .SingleAsync(c => c.Id == regulatoryCase.Id);
+
+        loaded.History.Count.ShouldBe(2);
+        loaded.History.ShouldContain(h => h.FromStatus == CaseStatus.Draft && h.ToStatus == CaseStatus.Submitted);
+        loaded.History.ShouldContain(h => h.FromStatus == CaseStatus.Submitted && h.ToStatus == CaseStatus.UnderReview);
+    }
 }

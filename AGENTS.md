@@ -36,3 +36,7 @@ See `ai/agents/Dotnet/SETTINGS.md` for the typed-settings (Options) pattern: rec
 - Test: `dotnet test`
 - Style: `dotnet format --verify-no-changes --no-restore`
 - **Integration tests (`*.Tests.Integration`):** require Docker engine running — they spin up real dependencies (SQL Server) via Testcontainers. See `ai/agents/Dotnet/TESTING.md` → *Integration Test Infrastructure*.
+
+### Domain quirks (non-inferable)
+- **`RegulatoryCase.ChangeStatus(CaseStatus)` escape hatch:** public transition method with **no endpoint and no test wiring** as of this PR; permits arbitrary non-terminal status jumps (e.g. `Draft`→`Approved`, skipping the workflow). Do not wire it to an endpoint without first restricting it or replacing it with explicit terminal transitions (`Approve`/`Reject`/`Archive`).
+- **`CaseStatus` persisted as `int`:** `CaseStatus` is stored via `HasConversion<int>()` (`RegulatoryCaseConfiguration.cs`), so adding enum members is schema-neutral — only new tables/FKs require a migration.

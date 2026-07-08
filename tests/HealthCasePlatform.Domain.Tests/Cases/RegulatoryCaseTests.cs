@@ -189,4 +189,103 @@ public class RegulatoryCaseTests
         result.IsError.ShouldBeFalse();
         sut.Decisions.ShouldContain(decision);
     }
+
+    [Fact]
+    public void StartScientificReview_FromSubmitted_ChangesStatusToUnderScientificReview()
+    {
+        var sut = CreateCase();
+        sut.Submit();
+
+        var result = sut.StartScientificReview();
+
+        result.IsError.ShouldBeFalse();
+        sut.Status.ShouldBe(CaseStatus.UnderScientificReview);
+        sut.UpdatedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void StartScientificReview_WhenNotSubmitted_ReturnsConflictError()
+    {
+        var sut = CreateCase();
+
+        var result = sut.StartScientificReview();
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.NotSubmitted.Code);
+    }
+
+    [Fact]
+    public void Submit_AppendsHistoryEntryWithFromDraftToSubmitted()
+    {
+        var sut = CreateCase();
+
+        sut.Submit();
+
+        sut.History.Count.ShouldBe(1);
+        sut.History[0].FromStatus.ShouldBe(CaseStatus.Draft);
+        sut.History[0].ToStatus.ShouldBe(CaseStatus.Submitted);
+        sut.History[0].CaseId.ShouldBe(sut.Id);
+    }
+
+    [Fact]
+    public void StartReview_AppendsHistoryEntryWithFromSubmittedToUnderReview()
+    {
+        var sut = CreateCase();
+        sut.Submit();
+
+        sut.StartReview();
+
+        sut.History.Count.ShouldBe(2);
+        sut.History[^1].FromStatus.ShouldBe(CaseStatus.Submitted);
+        sut.History[^1].ToStatus.ShouldBe(CaseStatus.UnderReview);
+    }
+
+    [Fact]
+    public void StartScientificReview_AppendsHistoryEntryWithFromSubmittedToUnderScientificReview()
+    {
+        var sut = CreateCase();
+        sut.Submit();
+
+        sut.StartScientificReview();
+
+        sut.History.Count.ShouldBe(2);
+        sut.History[^1].FromStatus.ShouldBe(CaseStatus.Submitted);
+        sut.History[^1].ToStatus.ShouldBe(CaseStatus.UnderScientificReview);
+    }
+
+    [Fact]
+    public void Transitions_RecordHistoryInChronologicalOrder()
+    {
+        var sut = CreateCase();
+        sut.Submit();
+        sut.StartReview();
+
+        sut.History.Count.ShouldBe(2);
+        sut.History[0].TransitionedAt.ShouldBeLessThanOrEqualTo(sut.History[1].TransitionedAt);
+        sut.History[0].Id.ShouldNotBe(sut.History[1].Id);
+    }
+
+    [Fact]
+    public void ChangeStatus_AppendsHistoryEntryWithFromCurrentToNew()
+    {
+        var sut = CreateCase();
+        sut.Submit();
+
+        var result = sut.ChangeStatus(CaseStatus.PendingDecision);
+
+        result.IsError.ShouldBeFalse();
+        sut.History.Count.ShouldBe(2);
+        sut.History[^1].FromStatus.ShouldBe(CaseStatus.Submitted);
+        sut.History[^1].ToStatus.ShouldBe(CaseStatus.PendingDecision);
+    }
+
+    [Fact]
+    public void Transition_RecordsSingleTimestampForHistoryAndUpdatedAt()
+    {
+        var sut = CreateCase();
+
+        sut.Submit();
+
+        sut.History[^1].TransitionedAt.ShouldBe(sut.UpdatedAt!.Value);
+    }
 }
