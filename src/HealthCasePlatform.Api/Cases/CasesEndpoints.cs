@@ -1,8 +1,10 @@
 using ErrorOr;
 using HealthCasePlatform.Api.Common;
-using HealthCasePlatform.Application.Cases;
+using HealthCasePlatform.Application.Cases.Commands;
 using HealthCasePlatform.Application.Cases.Models;
+using HealthCasePlatform.Application.Cases.Queries;
 using HealthCasePlatform.Domain.Cases;
+using Mediator;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace HealthCasePlatform.Api.Cases;
@@ -47,11 +49,11 @@ public static class CasesEndpoints
 
     private static async Task<Ok<PagedResponse<CaseListItemResponse>>> ListCases(
         [AsParameters] ListCasesRequest request,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var filter = new CaseListFilter(request.Status, request.Priority, request.Country);
-        var result = await caseService.ListAsync(filter, request.Page, request.PageSize, cancellationToken);
+        var query = new ListCasesQuery(request.Status, request.Priority, request.Country, request.Page, request.PageSize);
+        var result = await mediator.Send(query, cancellationToken);
 
         var items = result.Items
             .Select(c => new CaseListItemResponse(
@@ -73,10 +75,10 @@ public static class CasesEndpoints
 
     private static async Task<Results<Ok<CaseResponse>, NotFound>> GetCase(
         Guid id,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var entity = await caseService.GetByIdAsync(id, cancellationToken);
+        var entity = await mediator.Send(new GetCaseQuery(id), cancellationToken);
 
         if (entity is null)
         {
@@ -88,17 +90,18 @@ public static class CasesEndpoints
 
     private static async Task<Results<Created<CreateCaseResponse>, ValidationProblem>> CreateCase(
         CreateCaseRequest request,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken)
     {
-        var result = await caseService.CreateAsync(
+        var command = new CreateCaseCommand(
             request.Title,
             request.Description ?? string.Empty,
             request.CaseTypeId,
             request.Priority,
             request.CreatedBy,
-            request.Country,
-            cancellationToken);
+            request.Country);
+
+        var result = await mediator.Send(command, cancellationToken);
 
         if (result.IsError)
         {
@@ -124,64 +127,64 @@ public static class CasesEndpoints
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> SubmitCase(
         Guid id,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken = default)
     {
-        var result = await caseService.SubmitAsync(id, cancellationToken);
+        var result = await mediator.Send(new SubmitCaseCommand(id), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartScientificReview(
         Guid id,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken = default)
     {
-        var result = await caseService.StartScientificReviewAsync(id, cancellationToken);
+        var result = await mediator.Send(new StartScientificReviewCommand(id), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartLegalReview(
         Guid id,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken = default)
     {
-        var result = await caseService.StartLegalReviewAsync(id, cancellationToken);
+        var result = await mediator.Send(new StartLegalReviewCommand(id), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> RequestDecision(
         Guid id,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken = default)
     {
-        var result = await caseService.RequestDecisionAsync(id, cancellationToken);
+        var result = await mediator.Send(new RequestDecisionCommand(id), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> ApproveCase(
         Guid id,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken = default)
     {
-        var result = await caseService.ApproveAsync(id, cancellationToken);
+        var result = await mediator.Send(new ApproveCaseCommand(id), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> RejectCase(
         Guid id,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken = default)
     {
-        var result = await caseService.RejectAsync(id, cancellationToken);
+        var result = await mediator.Send(new RejectCaseCommand(id), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<IReadOnlyList<CaseStatusHistoryResponse>>, NotFound>> GetCaseHistory(
         Guid id,
-        ICaseService caseService,
+        IMediator mediator,
         CancellationToken cancellationToken = default)
     {
-        var result = await caseService.GetHistoryAsync(id, cancellationToken);
+        var result = await mediator.Send(new GetCaseHistoryQuery(id), cancellationToken);
 
         if (result.IsError)
         {

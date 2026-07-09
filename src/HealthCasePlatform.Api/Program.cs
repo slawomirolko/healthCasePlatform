@@ -1,14 +1,20 @@
 using HealthCasePlatform.Api.Cases;
-using HealthCasePlatform.Application;
+using HealthCasePlatform.Application.Cases.Commands;
 using HealthCasePlatform.Infrastructure;
 using HealthCasePlatform.Infrastructure.Persistence;
 using FluentValidation;
+using Mediator;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddApplication();
+builder.Services.AddMediator(o =>
+{
+    o.ServiceLifetime = ServiceLifetime.Scoped;
+    o.Assemblies = [typeof(CreateCaseCommand).Assembly];
+});
 builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
