@@ -8,7 +8,7 @@ Dependency leaf. Aggregate roots, child entities, `<Entity>Errors`, slice-owned 
 
 ## Hard rules
 
-- No infra refs. No EF Core. No MediatR. No `IOptions<T>`. No settings types. No `[JsonPropertyName]`.
+- No infra refs. No EF Core. No MediatR. No Mediator. No `IOptions<T>`. No settings types. No `[JsonPropertyName]`.
 - Allowed package: `ErrorOr` (domain result type, not infra). Nothing else.
 - Slice-per-aggregate-root. One folder per root (`Cases/`). Root + children + `<Entity>Errors` + repo interface all in slice. Nothing leak across slice.
 - Repo interface owned here, impl in Infrastructure: `Cases/ICaseRepository.cs`. Primitives only in interface (no EF types). Domain query-bag-free.

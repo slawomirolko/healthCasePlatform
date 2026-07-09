@@ -7,7 +7,7 @@ Domain architecture rules for this repo. AI agents and skills read this file to 
 ```
 src/           # production projects
   HealthCasePlatform.Domain/          # dependency leaf — no infrastructure refs
-  HealthCasePlatform.Application/     # use cases, CQRS handlers (future)
+  HealthCasePlatform.Application/     # use cases, CQRS handlers (Mediator)
   HealthCasePlatform.Infrastructure/  # EF Core, external services (future)
   HealthCasePlatform.Api/             # ASP.NET Core endpoints (future)
 tests/         # test projects mirror src/ names with .Tests suffix
@@ -100,11 +100,13 @@ HealthCasePlatform.Domain/
 - ❌ Do not add per-project `Directory.Packages.props` files — exactly one lives at the repo root.
 
 ## Dependency Injection & Composition Root
-- ✅ Each outer layer exposes **one** DI extension method per concern (`AddApplication()`, `AddInfrastructure()`, `AddPersistence()`) and each is called explicitly in `Program.cs`.
-- ✅ Every service has its own interface; register by interface and consume interfaces in constructors.
+- ✅ Each outer layer exposes **one** DI extension method per concern (`AddInfrastructure()`, `AddPersistence()`) and each is called explicitly in `Program.cs`.
+- ✅ **Application is the exception** — it has NO manual DI extension (no `AddApplication`). Its handlers (command/query) are auto-registered by `AddMediator(...)` called explicitly in `Program.cs` (the source generator scans the Application assembly for `ICommandHandler` / `IQueryHandler` impls). This is a deliberate deviation from "one extension per layer": there are no manual Application registrations to hide.
+- ✅ Every infra service has its own interface; register by interface and consume interfaces in constructors.
 - ✅ Keep DI registration granular per slice so settings/config stay isolated.
 - ❌ Do not register concrete-only service classes without an interface.
 - ❌ Do not hide `services.AddXxx(...)` calls inside other extension methods — each host wires them explicitly in `Program.cs`.
+- ⚠️ **Mediator lifetime is load-bearing:** `AddMediator(o => o.ServiceLifetime = ServiceLifetime.Scoped)` — handlers inject Scoped `ICaseRepository` (uses Scoped `AppDbContext`). Mediator's default (Singleton) would throw `Cannot consume scoped service from singleton` at first dispatch. Always set Scoped.
 
 ## Persistence / EF Core
 - ✅ Configure every entity with `IEntityTypeConfiguration<T>` where `T` is the **Domain** entity (`RegulatoryCase`, `CaseTask`, `CaseDocument`, `Decision`, `Comment`, `CaseType`) — one file per entity under `Persistence/Configurations/<Slice>/`.
@@ -180,3 +182,33 @@ Dependency graph realized (§2 of the plan): `Api → Application, Infrastructur
 `Application → Domain`; `Infrastructure → Domain`. The `Infrastructure → Application` edge is **not**
 added (`ICaseRepository` is a Domain interface; `CaseRepository` implements it from Domain). Add it
 only if a future Application-owned read-model interface (server-side projection) is introduced.
+
+## Refactor history — ICaseService → CQRS handlers (Mediator)
+
+The service-interface-per-aggregate pattern (`ICaseService` / `CaseService`) was replaced with CQRS
+command/query handlers using the **Mediator** library (martinothamar/Mediator — source-generator based,
+NOT MediatR):
+
+- `ICaseService` / `CaseService` / `CaseListFilter` / `DependencyInjection.AddApplication()` **deleted**.
+  Orchestration logic moved verbatim into `sealed` handlers under `Application/Cases/Commands/` and
+  `Application/Cases/Queries/`. Messages = `sealed record : ICommand<ErrorOr<T>>` / `IQuery<T>`;
+  handlers = `sealed class` injecting `ICaseRepository` via explicit ctor; transitions share an
+  `internal static CaseTransitionHelper.TransitionAsync(...)`. Not-found error moved to
+  `internal static CaseErrors.NotFound` (Application concern, per Domain rules).
+- Packages: `Mediator.Abstractions` (Application, Api, Application.Tests);
+  `Mediator.SourceGenerator` (Api only, `PrivateAssets=all`) — generates the `IMediator` impl + the
+  `AddMediator` DI extension at build time. Domain stays pure — no `Mediator.Abstractions` ref
+  (the dependency leaf; guard named in `Domain/AGENTS.md`).
+- Composition root: `AddApplication()` removed; `AddMediator(o => { o.ServiceLifetime = ServiceLifetime.Scoped;
+  o.Assemblies = [typeof(CreateCaseCommand).Assembly]; })` called explicitly in `Program.cs` (Api) per
+  the "do not hide `AddXxx` in extensions" rule. **Scoped is load-bearing** — handlers inject Scoped
+  `ICaseRepository`; Mediator's default Singleton throws `Cannot consume scoped service from singleton`.
+- Endpoint DI: `ICaseService` → `IMediator`; handlers build a command/query record and `await mediator.Send(...)`.
+- New unit-test project `HealthCasePlatform.Application.Tests` delivers the deferred handler coverage
+  (REFACTOR_PLAN §10.2): NSubstitute mocks `ICaseRepository`, real `RegulatoryCase` domain, Shouldly asserts.
+  `InternalsVisibleTo` on the Application `.csproj` exposes `CaseErrors` / `CaseTransitionHelper`.
+
+**HTTP contract unchanged by construction**: routes, endpoint names, filters, result types, status codes,
+content types, and problem-detail `detail` strings are byte-for-byte preserved. All existing
+`Api.Tests.Integration` (`CasesEndpointsTests`, `ListCasesTests`) assertions stay green unchanged — they
+exercise the real Mediator pipeline for free (the `ApiFactory` needs no edit).

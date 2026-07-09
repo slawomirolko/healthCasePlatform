@@ -7,6 +7,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/HealthCasePlatform.Api.Tests.Integration/HealthCasePlatform.Api.Tests.Integration.csproj" />
+    <Project Path="tests/HealthCasePlatform.Application.Tests/HealthCasePlatform.Application.Tests.csproj" />
     <Project Path="tests/HealthCasePlatform.Domain.Tests/HealthCasePlatform.Domain.Tests.csproj" />
     <Project Path="tests/HealthCasePlatform.Infrastructure.Tests.Integration/HealthCasePlatform.Infrastructure.Tests.Integration.csproj" />
     <Project Path="tests/HealthCasePlatform.Infrastructure.Tests/HealthCasePlatform.Infrastructure.Tests.csproj" />

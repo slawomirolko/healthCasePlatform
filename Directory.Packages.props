@@ -16,10 +16,15 @@
     <CoverletVersion>6.0.4</CoverletVersion>
     <ShouldlyVersion>4.3.0</ShouldlyVersion>
     <FluentValidationVersion>12.1.1</FluentValidationVersion>
+    <MediatorVersion>3.0.2</MediatorVersion>
+    <NSubstituteVersion>5.3.0</NSubstituteVersion>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageVersion Include="ErrorOr" Version="2.1.1" />
+    <PackageVersion Include="Mediator.Abstractions" Version="$(MediatorVersion)" />
+    <PackageVersion Include="Mediator.SourceGenerator" Version="$(MediatorVersion)" />
+    <PackageVersion Include="NSubstitute" Version="$(NSubstituteVersion)" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.2.3" />
     <PackageVersion Include="Testcontainers.MsSql" Version="4.13.0" />
 
