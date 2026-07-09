@@ -1,19 +1,15 @@
 using HealthCasePlatform.Api.Cases;
+using HealthCasePlatform.Application;
+using HealthCasePlatform.Infrastructure;
 using HealthCasePlatform.Infrastructure.Persistence;
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.Configure<DatabaseSettings>(builder.Configuration.GetSection(DatabaseSettings.SectionName));
-
-builder.Services.AddDbContext<AppDbContext>((sp, options) =>
-{
-    var settings = sp.GetRequiredService<IOptions<DatabaseSettings>>().Value;
-    options.UseSqlServer(settings.ConnectionString);
-});
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 

@@ -1,9 +1,9 @@
-using HealthCasePlatform.Api.Common;
-using HealthCasePlatform.Domain.Cases;
-using HealthCasePlatform.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.EntityFrameworkCore;
 using ErrorOr;
+using HealthCasePlatform.Api.Common;
+using HealthCasePlatform.Application.Cases;
+using HealthCasePlatform.Application.Cases.Models;
+using HealthCasePlatform.Domain.Cases;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace HealthCasePlatform.Api.Cases;
 
@@ -47,39 +47,13 @@ public static class CasesEndpoints
 
     private static async Task<Ok<PagedResponse<CaseListItemResponse>>> ListCases(
         [AsParameters] ListCasesRequest request,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken)
     {
-        var page = Math.Max(1, request.Page);
-        var pageSize = Math.Clamp(request.PageSize, 1, 100);
-        var country = string.IsNullOrWhiteSpace(request.Country)
-            ? null
-            : request.Country.Trim().ToUpperInvariant();
+        var filter = new CaseListFilter(request.Status, request.Priority, request.Country);
+        var result = await caseService.ListAsync(filter, request.Page, request.PageSize, cancellationToken);
 
-        IQueryable<RegulatoryCase> query = db.RegulatoryCases.AsNoTracking();
-
-        if (request.Status.HasValue)
-        {
-            query = query.Where(c => c.Status == request.Status.Value);
-        }
-
-        if (request.Priority.HasValue)
-        {
-            query = query.Where(c => c.Priority == request.Priority.Value);
-        }
-
-        if (country is not null)
-        {
-            query = query.Where(c => c.Country == country);
-        }
-
-        query = query.OrderByDescending(c => c.CreatedAt).ThenByDescending(c => c.Id);
-
-        var totalCount = await query.CountAsync(cancellationToken);
-
-        var items = await query
-            .Skip((page - 1) * pageSize)
-            .Take(pageSize)
+        var items = result.Items
             .Select(c => new CaseListItemResponse(
                 c.Id,
                 c.Title,
@@ -87,54 +61,44 @@ public static class CasesEndpoints
                 c.Status.ToString(),
                 c.Priority.ToString(),
                 c.CreatedAt))
-            .ToListAsync(cancellationToken);
+            .ToList();
 
-        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
-
-        return TypedResults.Ok(new PagedResponse<CaseListItemResponse>(items, page, pageSize, totalCount, totalPages));
+        return TypedResults.Ok(new PagedResponse<CaseListItemResponse>(
+            items,
+            result.Page,
+            result.PageSize,
+            result.TotalCount,
+            result.TotalPages));
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound>> GetCase(
         Guid id,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken)
     {
-        var entity = await db.RegulatoryCases
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+        var entity = await caseService.GetByIdAsync(id, cancellationToken);
 
         if (entity is null)
         {
             return TypedResults.NotFound();
         }
 
-        var response = new CaseResponse(
-            entity.Id,
-            entity.Title,
-            entity.Description,
-            entity.CaseTypeId,
-            entity.Status.ToString(),
-            entity.Priority.ToString(),
-            entity.Country,
-            entity.CreatedBy,
-            entity.CreatedAt,
-            entity.UpdatedAt);
-
-        return TypedResults.Ok(response);
+        return TypedResults.Ok(ToCaseResponse(entity));
     }
 
     private static async Task<Results<Created<CreateCaseResponse>, ValidationProblem>> CreateCase(
         CreateCaseRequest request,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken)
     {
-        var result = RegulatoryCase.Create(
+        var result = await caseService.CreateAsync(
             request.Title,
             request.Description ?? string.Empty,
             request.CaseTypeId,
             request.Priority,
             request.CreatedBy,
-            request.Country);
+            request.Country,
+            cancellationToken);
 
         if (result.IsError)
         {
@@ -143,8 +107,6 @@ public static class CasesEndpoints
         }
 
         var entity = result.Value;
-        db.RegulatoryCases.Add(entity);
-        await db.SaveChangesAsync(cancellationToken);
 
         var response = new CreateCaseResponse(
             entity.Id,
@@ -160,41 +122,83 @@ public static class CasesEndpoints
         return TypedResults.Created($"/api/v1/cases/{entity.Id}", response);
     }
 
-    private static Task<Results<Ok<CaseResponse>, NotFound, IResult>> SubmitCase(
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> SubmitCase(
         Guid id,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken = default)
-        => TransitionCase(id, db, c => c.Submit(), cancellationToken);
+    {
+        var result = await caseService.SubmitAsync(id, cancellationToken);
+        return MapTransition(result);
+    }
 
-    private static Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartScientificReview(
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartScientificReview(
         Guid id,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken = default)
-        => TransitionCase(id, db, c => c.StartScientificReview(), cancellationToken);
+    {
+        var result = await caseService.StartScientificReviewAsync(id, cancellationToken);
+        return MapTransition(result);
+    }
 
-    private static Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartLegalReview(
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartLegalReview(
         Guid id,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken = default)
-        => TransitionCase(id, db, c => c.StartLegalReview(), cancellationToken);
+    {
+        var result = await caseService.StartLegalReviewAsync(id, cancellationToken);
+        return MapTransition(result);
+    }
 
-    private static Task<Results<Ok<CaseResponse>, NotFound, IResult>> RequestDecision(
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> RequestDecision(
         Guid id,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken = default)
-        => TransitionCase(id, db, c => c.RequestDecision(), cancellationToken);
+    {
+        var result = await caseService.RequestDecisionAsync(id, cancellationToken);
+        return MapTransition(result);
+    }
 
-    private static Task<Results<Ok<CaseResponse>, NotFound, IResult>> ApproveCase(
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> ApproveCase(
         Guid id,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken = default)
-        => TransitionCase(id, db, c => c.Approve(), cancellationToken);
+    {
+        var result = await caseService.ApproveAsync(id, cancellationToken);
+        return MapTransition(result);
+    }
 
-    private static Task<Results<Ok<CaseResponse>, NotFound, IResult>> RejectCase(
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> RejectCase(
         Guid id,
-        AppDbContext db,
+        ICaseService caseService,
         CancellationToken cancellationToken = default)
-        => TransitionCase(id, db, c => c.Reject(), cancellationToken);
+    {
+        var result = await caseService.RejectAsync(id, cancellationToken);
+        return MapTransition(result);
+    }
+
+    private static async Task<Results<Ok<IReadOnlyList<CaseStatusHistoryResponse>>, NotFound>> GetCaseHistory(
+        Guid id,
+        ICaseService caseService,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await caseService.GetHistoryAsync(id, cancellationToken);
+
+        if (result.IsError)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var history = result.Value
+            .Select(h => new CaseStatusHistoryResponse(
+                h.Id,
+                h.CaseId,
+                h.FromStatus.ToString(),
+                h.ToStatus.ToString(),
+                h.TransitionedAt))
+            .ToList();
+
+        return TypedResults.Ok((IReadOnlyList<CaseStatusHistoryResponse>)history);
+    }
 
     private static CaseResponse ToCaseResponse(RegulatoryCase entity) =>
         new(entity.Id,
@@ -208,24 +212,16 @@ public static class CasesEndpoints
             entity.CreatedAt,
             entity.UpdatedAt);
 
-    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> TransitionCase(
-        Guid id,
-        AppDbContext db,
-        Func<RegulatoryCase, ErrorOr<Success>> transition,
-        CancellationToken cancellationToken)
+    private static Results<Ok<CaseResponse>, NotFound, IResult> MapTransition(ErrorOr<RegulatoryCase> result)
     {
-        var entity = await db.RegulatoryCases
-            .FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-
-        if (entity is null)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var result = transition(entity);
         if (result.IsError)
         {
             var error = result.Errors[0];
+            if (error.Type == ErrorType.NotFound)
+            {
+                return TypedResults.NotFound();
+            }
+
             return TypedResults.Problem(
                 statusCode: StatusCodes.Status409Conflict,
                 title: "Conflict",
@@ -233,36 +229,6 @@ public static class CasesEndpoints
                 detail: error.Description);
         }
 
-        await db.SaveChangesAsync(cancellationToken);
-        return TypedResults.Ok(ToCaseResponse(entity));
-    }
-
-    private static async Task<Results<Ok<IReadOnlyList<CaseStatusHistoryResponse>>, NotFound>> GetCaseHistory(
-        Guid id,
-        AppDbContext db,
-        CancellationToken cancellationToken = default)
-    {
-        var exists = await db.RegulatoryCases
-            .AsNoTracking()
-            .AnyAsync(c => c.Id == id, cancellationToken);
-
-        if (!exists)
-        {
-            return TypedResults.NotFound();
-        }
-
-        var history = await db.CaseStatusHistories
-            .AsNoTracking()
-            .Where(h => h.CaseId == id)
-            .OrderBy(h => h.TransitionedAt)
-            .Select(h => new CaseStatusHistoryResponse(
-                h.Id,
-                h.CaseId,
-                h.FromStatus.ToString(),
-                h.ToStatus.ToString(),
-                h.TransitionedAt))
-            .ToListAsync(cancellationToken);
-
-        return TypedResults.Ok((IReadOnlyList<CaseStatusHistoryResponse>)history);
+        return TypedResults.Ok(ToCaseResponse(result.Value));
     }
 }

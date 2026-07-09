@@ -150,3 +150,33 @@ HealthCasePlatform.Domain/
 - Coding style: `ai/agents/Dotnet/CODING_STYLE.md`
 - Test conventions: `ai/agents/Dotnet/TESTING.md`
 - Project conventions: `AGENTS.md`
+
+## Refactor history — Api-monolith → layered
+
+Case-management behavior that lived inline in `src/HealthCasePlatform.Api/Cases/CasesEndpoints.cs`
+(EF queries, load→transition→save orchestration, create flow) was relocated into the Clean
+Architecture layers this file documents but had not yet built:
+
+- New project `src/HealthCasePlatform.Application/` — use-case service `ICaseService` /
+  `CaseService` orchestrating repository + domain, returning domain entities + `ErrorOr`.
+- New Domain-owned persistence contract `src/HealthCasePlatform.Domain/Cases/ICaseRepository.cs`
+  (slice-owned per `## Domain Project — Slice-per-Aggregate-Root`), implemented in Infrastructure by
+  `Persistence/Repositories/CaseRepository.cs` (`sealed`, preserves prior tracked/AsNoTracking/
+  OrderBy usage).
+- New composition-root DI extensions: `Application.DependencyInjection.AddApplication()` and
+  `Infrastructure.DependencyInjection.AddInfrastructure(IConfiguration)`, both called explicitly
+  in `Program.cs` per `## Dependency Injection & Composition Root`.
+- `CasesEndpoints.cs` handlers now inject `ICaseService` only (no `AppDbContext`); entity→DTO mapping
+  stays at the Api boundary per `## Persistence / EF Core` rule.
+
+**HTTP contract unchanged by construction**: routes, endpoint names, filters, result types, status
+codes, content types, and problem-detail `detail` strings are byte-for-byte preserved. Transitions
+return `ErrorOr<RegulatoryCase>` (single error channel — `Error.NotFound` for a missing case,
+`Error.Conflict` for a failed domain transition); the handler maps `ErrorType.NotFound` → 404 and the
+conflict error → 409 with the exact prior `TypedResults.Problem` arguments. All existing `Api.Tests.Integration`
+(`CasesEndpointsTests`, `ListCasesTests`) and `Infrastructure.Tests.Integration` assertions stay green unchanged.
+
+Dependency graph realized (§2 of the plan): `Api → Application, Infrastructure`;
+`Application → Domain`; `Infrastructure → Domain`. The `Infrastructure → Application` edge is **not**
+added (`ICaseRepository` is a Domain interface; `CaseRepository` implements it from Domain). Add it
+only if a future Application-owned read-model interface (server-side projection) is introduced.
