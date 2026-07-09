@@ -14,6 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HealthCasePlatform.Infrastructure\HealthCasePlatform.Infrastructure.csproj" />
+    <ProjectReference Include="..\HealthCasePlatform.Application\HealthCasePlatform.Application.csproj" />
   </ItemGroup>
 
 </Project>
