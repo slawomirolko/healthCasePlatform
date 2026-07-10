@@ -451,13 +451,19 @@ public sealed class CasesEndpointsTests : IClassFixture<ApiFactory>
     }
 
     [Theory]
-    [InlineData("/legal-review")]
-    [InlineData("/decision-request")]
-    [InlineData("/approval")]
-    [InlineData("/rejection")]
-    public async Task TransitionEndpoint_WhenCaseUnknown_Returns404(string segment)
+    [InlineData("/legal-review", "00000000-0000-0000-0000-000000000000")]
+    [InlineData("/decision-request", "00000000-0000-0000-0000-000000000000")]
+    [InlineData("/approval", "00000000-0000-0000-0000-000000000000")]
+    [InlineData("/rejection", "00000000-0000-0000-0000-000000000000")]
+    [InlineData("/submission", "not-a-guid")]
+    [InlineData("/scientific-review", "not-a-guid")]
+    [InlineData("/legal-review", "not-a-guid")]
+    [InlineData("/decision-request", "not-a-guid")]
+    [InlineData("/approval", "not-a-guid")]
+    [InlineData("/rejection", "not-a-guid")]
+    public async Task TransitionEndpoint_WhenCaseUnknown_Returns404(string segment, string id)
     {
-        var response = await _client.PostAsync($"/api/v1/cases/{Guid.NewGuid()}{segment}", content: null);
+        var response = await _client.PostAsync($"/api/v1/cases/{id}{segment}", content: null);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
         response.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");

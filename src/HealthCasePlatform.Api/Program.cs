@@ -1,4 +1,5 @@
 using HealthCasePlatform.Api.Cases;
+using HealthCasePlatform.Api.Common;
 using HealthCasePlatform.Application.Cases.Commands;
 using HealthCasePlatform.Infrastructure;
 using HealthCasePlatform.Infrastructure.Persistence;
@@ -23,6 +24,7 @@ builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
 
 builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
