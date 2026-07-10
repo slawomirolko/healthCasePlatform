@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="HealthCasePlatform.Api.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\HealthCasePlatform.Infrastructure\HealthCasePlatform.Infrastructure.csproj" />
     <ProjectReference Include="..\HealthCasePlatform.Application\HealthCasePlatform.Application.csproj" />
   </ItemGroup>
