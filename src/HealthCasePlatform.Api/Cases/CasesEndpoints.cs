@@ -15,34 +15,44 @@ public static class CasesEndpoints
     {
         group.MapPost("/cases", CreateCase)
             .WithName("CreateCase")
-            .AddEndpointFilter<ValidationFilter<CreateCaseRequest>>();
+            .AddEndpointFilter<ValidationFilter<CreateCaseRequest>>()
+            .RequireAuthorization(b => b.RequireRole(AppRoles.CaseOfficer));
 
         group.MapGet("/cases/{id:guid}", GetCase)
-            .WithName("GetCase");
+            .WithName("GetCase")
+            .RequireAuthorization();
 
         group.MapGet("/cases", ListCases)
-            .WithName("ListCases");
+            .WithName("ListCases")
+            .RequireAuthorization();
 
         group.MapPost("/cases/{id:guid}/submission", SubmitCase)
-            .WithName("SubmitCase");
+            .WithName("SubmitCase")
+            .RequireAuthorization(b => b.RequireRole(AppRoles.CaseOfficer));
 
         group.MapPost("/cases/{id:guid}/scientific-review", StartScientificReview)
-            .WithName("StartScientificReview");
+            .WithName("StartScientificReview")
+            .RequireAuthorization(b => b.RequireRole(AppRoles.ScientificReviewer));
 
         group.MapPost("/cases/{id:guid}/legal-review", StartLegalReview)
-            .WithName("StartLegalReview");
+            .WithName("StartLegalReview")
+            .RequireAuthorization(b => b.RequireRole(AppRoles.LegalReviewer));
 
         group.MapPost("/cases/{id:guid}/decision-request", RequestDecision)
-            .WithName("RequestDecision");
+            .WithName("RequestDecision")
+            .RequireAuthorization(b => b.RequireRole(AppRoles.TeamLeader));
 
         group.MapPost("/cases/{id:guid}/approval", ApproveCase)
-            .WithName("ApproveCase");
+            .WithName("ApproveCase")
+            .RequireAuthorization(b => b.RequireRole(AppRoles.TeamLeader));
 
         group.MapPost("/cases/{id:guid}/rejection", RejectCase)
-            .WithName("RejectCase");
+            .WithName("RejectCase")
+            .RequireAuthorization(b => b.RequireRole(AppRoles.TeamLeader));
 
         group.MapGet("/cases/{id:guid}/history", GetCaseHistory)
-            .WithName("GetCaseHistory");
+            .WithName("GetCaseHistory")
+            .RequireAuthorization();
 
         return group;
     }

@@ -1,4 +1,5 @@
 using HealthCasePlatform.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -20,7 +21,21 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         {
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.AddDbContext<AppDbContext>(options => options.UseSqlServer(_db.GetConnectionString()));
+
+            services.AddAuthentication("Fake")
+                .AddScheme<AuthenticationSchemeOptions, FakeAuthHandler>("Fake", _ => { });
         });
+    }
+
+    public HttpClient CreateClientWithRoles(params string[] roles)
+    {
+        var client = CreateClient();
+        if (roles.Length > 0)
+        {
+            client.DefaultRequestHeaders.Add(FakeAuthHandler.RolesHeader, string.Join(',', roles));
+        }
+
+        return client;
     }
 
     public async Task InitializeAsync()
