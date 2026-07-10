@@ -20,6 +20,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
+
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();
 
@@ -40,6 +43,9 @@ app.UseStatusCodePages(async statusCodeContext =>
         ProblemDetails = { Status = statusCodeContext.HttpContext.Response.StatusCode }
     });
 });
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.UseSwagger();
 app.UseSwaggerUI(options => options.SwaggerEndpoint("/swagger/v1/swagger.json", "HealthCasePlatform v1"));
