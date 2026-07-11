@@ -2,6 +2,7 @@ using HealthCasePlatform.Domain.Cases;
 using HealthCasePlatform.Infrastructure.Persistence;
 using HealthCasePlatform.Infrastructure.Persistence.AuditStores;
 using HealthCasePlatform.Infrastructure.Persistence.Mongo;
+using HealthCasePlatform.Infrastructure.Persistence.NotificationStores;
 using HealthCasePlatform.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -44,6 +45,7 @@ public static class DependencyInjection
         else
         {
             services.AddScoped<IAuditLogWriter, SqlAuditLogWriter>();
+            services.AddScoped<INotificationWriter, SqlNotificationWriter>();
         }
 
         return services;

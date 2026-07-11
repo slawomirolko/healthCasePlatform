@@ -1,5 +1,6 @@
 using HealthCasePlatform.Application.Cases;
 using HealthCasePlatform.Application.Cases.Commands;
+using HealthCasePlatform.Application.Cases.Notifications;
 using HealthCasePlatform.Domain.Cases;
 using HealthCasePlatform.Domain.Enums;
 using NSubstitute;
@@ -18,7 +19,7 @@ public sealed class SubmitCaseCommandHandlerTests : CaseHandlerTestBase
     {
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns((RegulatoryCase?)null);
-        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter());
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter(), CreateMediator());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -33,7 +34,7 @@ public sealed class SubmitCaseCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.Draft);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter());
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter(), CreateMediator());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -48,7 +49,7 @@ public sealed class SubmitCaseCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.Submitted);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter());
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter(), CreateMediator());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -62,11 +63,56 @@ public sealed class SubmitCaseCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.Submitted);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter());
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter(), CreateMediator());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
         result.IsError.ShouldBeTrue();
         await repo.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenCaseIsDraft_PublishesCaseSubmittedNotification()
+    {
+        var existing = BringCaseTo(CaseStatus.Draft);
+        var repo = CreateRepository();
+        repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
+        var mediator = CreateMediator();
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter(), mediator);
+
+        var result = await handler.Handle(Command(), CancellationToken.None);
+
+        result.IsError.ShouldBeFalse();
+        await mediator.Received(1).Publish(
+            Arg.Is<CaseSubmittedNotification>(n => n.CaseId == existing.Id),
+            Arg.Any<CancellationToken>());
+        await repo.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenCaseNotFound_DoesNotPublishNotification()
+    {
+        var repo = CreateRepository();
+        repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns((RegulatoryCase?)null);
+        var mediator = CreateMediator();
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter(), mediator);
+
+        await handler.Handle(Command(), CancellationToken.None);
+
+        await mediator.DidNotReceive().Publish(Arg.Any<CaseSubmittedNotification>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Handle_WhenTransitionFails_DoesNotPublishNotification()
+    {
+        var existing = BringCaseTo(CaseStatus.Submitted);
+        var repo = CreateRepository();
+        repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
+        var mediator = CreateMediator();
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter(), mediator);
+
+        await handler.Handle(Command(), CancellationToken.None);
+
+        await mediator.DidNotReceive().Publish(Arg.Any<CaseSubmittedNotification>(), Arg.Any<CancellationToken>());
     }
 }

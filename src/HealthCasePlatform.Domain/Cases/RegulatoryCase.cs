@@ -1,4 +1,5 @@
 using ErrorOr;
+using HealthCasePlatform.Domain.Cases.Events;
 using HealthCasePlatform.Domain.Common;
 using HealthCasePlatform.Domain.Enums;
 
@@ -83,7 +84,15 @@ public sealed class RegulatoryCase : Entity
     }
 
     public ErrorOr<Success> Submit()
-        => Transition(CaseStatus.Draft, CaseStatus.Submitted, RegulatoryCaseErrors.NotDraft);
+    {
+        var result = Transition(CaseStatus.Draft, CaseStatus.Submitted, RegulatoryCaseErrors.NotDraft);
+        if (!result.IsError)
+        {
+            Raise(new CaseSubmitted(Id, DateTime.UtcNow));
+        }
+
+        return result;
+    }
 
     public ErrorOr<Success> StartReview()
         => Transition(CaseStatus.Submitted, CaseStatus.UnderReview, RegulatoryCaseErrors.NotSubmitted);

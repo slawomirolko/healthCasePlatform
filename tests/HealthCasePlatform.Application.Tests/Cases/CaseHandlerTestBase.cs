@@ -1,5 +1,6 @@
 using HealthCasePlatform.Domain.Cases;
 using HealthCasePlatform.Domain.Enums;
+using Mediator;
 using NSubstitute;
 using Shouldly;
 
@@ -10,6 +11,10 @@ public abstract class CaseHandlerTestBase
     protected static ICaseRepository CreateRepository() => Substitute.For<ICaseRepository>();
 
     protected static IAuditLogWriter CreateAuditWriter() => Substitute.For<IAuditLogWriter>();
+
+    protected static IMediator CreateMediator() => Substitute.For<IMediator>();
+
+    protected static INotificationWriter CreateNotificationWriter() => Substitute.For<INotificationWriter>();
 
     protected static RegulatoryCase CreateCase() =>
         RegulatoryCase.Create("Food safety incident #42", "Initial report", Guid.NewGuid(), CasePriority.High, "officer-1", "PL").Value;
