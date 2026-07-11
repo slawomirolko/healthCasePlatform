@@ -38,6 +38,18 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         return client;
     }
 
+    public HttpClient CreateClientAs(string userId, params string[] roles)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add(FakeAuthHandler.UserHeader, userId);
+        if (roles.Length > 0)
+        {
+            client.DefaultRequestHeaders.Add(FakeAuthHandler.RolesHeader, string.Join(',', roles));
+        }
+
+        return client;
+    }
+
     public async Task InitializeAsync()
     {
         await _db.StartAsync();

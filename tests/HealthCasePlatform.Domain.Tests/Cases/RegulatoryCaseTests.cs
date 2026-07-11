@@ -496,4 +496,64 @@ public class RegulatoryCaseTests
             sut.History[i].TransitionedAt.ShouldBeGreaterThanOrEqualTo(sut.History[i - 1].TransitionedAt);
         }
     }
+
+    [Fact]
+    public void AssignScientificReviewer_SetsAssignedScientificReviewerId()
+    {
+        var sut = CreateCase();
+
+        var result = sut.AssignScientificReviewer("sci-1");
+
+        result.IsError.ShouldBeFalse();
+        sut.AssignedScientificReviewerId.ShouldBe("sci-1");
+        sut.UpdatedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AssignScientificReviewer_WhenReviewerIdEmpty_ReturnsReviewerIdEmptyError()
+    {
+        var sut = CreateCase();
+
+        var result = sut.AssignScientificReviewer("  ");
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.ReviewerIdEmpty.Code);
+        sut.AssignedScientificReviewerId.ShouldBeNull();
+    }
+
+    [Fact]
+    public void AssignScientificReviewer_CanReassignExistingReviewer()
+    {
+        var sut = CreateCase();
+        sut.AssignScientificReviewer("sci-1").IsError.ShouldBeFalse();
+
+        var result = sut.AssignScientificReviewer("sci-2");
+
+        result.IsError.ShouldBeFalse();
+        sut.AssignedScientificReviewerId.ShouldBe("sci-2");
+    }
+
+    [Fact]
+    public void AssignLegalReviewer_SetsAssignedLegalReviewerId()
+    {
+        var sut = CreateCase();
+
+        var result = sut.AssignLegalReviewer("legal-1");
+
+        result.IsError.ShouldBeFalse();
+        sut.AssignedLegalReviewerId.ShouldBe("legal-1");
+        sut.UpdatedAt.ShouldNotBeNull();
+    }
+
+    [Fact]
+    public void AssignLegalReviewer_WhenReviewerIdEmpty_ReturnsReviewerIdEmptyError()
+    {
+        var sut = CreateCase();
+
+        var result = sut.AssignLegalReviewer("");
+
+        result.IsError.ShouldBeTrue();
+        result.Errors.ShouldContain(e => e.Code == RegulatoryCaseErrors.ReviewerIdEmpty.Code);
+        sut.AssignedLegalReviewerId.ShouldBeNull();
+    }
 }

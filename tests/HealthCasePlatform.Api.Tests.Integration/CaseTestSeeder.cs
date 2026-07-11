@@ -26,6 +26,18 @@ internal static class CaseTestSeeder
         return (await createResponse.Content.ReadFromJsonAsync<CreateCaseResponse>())!;
     }
 
+    public static async Task AssignScientificReviewerAsync(this HttpClient client, Guid caseId, string reviewerId) =>
+        await client.AssignReviewerAsync(caseId, reviewerId, "scientific");
+
+    public static async Task AssignLegalReviewerAsync(this HttpClient client, Guid caseId, string reviewerId) =>
+        await client.AssignReviewerAsync(caseId, reviewerId, "legal");
+
+    private static async Task AssignReviewerAsync(this HttpClient client, Guid caseId, string reviewerId, string track)
+    {
+        var response = await client.PostAsJsonAsync($"/api/v1/cases/{caseId}/assignment/{track}", new AssignReviewerRequest(reviewerId));
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
     public static async Task BringCaseToStateAsync(this HttpClient client, Guid caseId, CaseStatus target)
     {
         await client.PostAsync($"/api/v1/cases/{caseId}/submission", content: null);

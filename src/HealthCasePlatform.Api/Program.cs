@@ -1,10 +1,12 @@
 using HealthCasePlatform.Api.Cases;
 using HealthCasePlatform.Api.Common;
+using HealthCasePlatform.Api.Common.Authorization;
 using HealthCasePlatform.Application.Cases.Commands;
 using HealthCasePlatform.Infrastructure;
 using HealthCasePlatform.Infrastructure.Persistence;
 using FluentValidation;
 using Mediator;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +24,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddAuthentication();
 builder.Services.AddAuthorization();
+builder.Services.AddSingleton<IAuthorizationHandler, ReviewCaseAuthorizationHandler>();
 
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<AppDbContext>();

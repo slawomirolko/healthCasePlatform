@@ -21,4 +21,5 @@ public static class RegulatoryCaseErrors
     public static readonly Error TaskNull = Error.Validation("RegulatoryCase.TaskNull", "Task cannot be null.");
     public static readonly Error CommentNull = Error.Validation("RegulatoryCase.CommentNull", "Comment cannot be null.");
     public static readonly Error DecisionNull = Error.Validation("RegulatoryCase.DecisionNull", "Decision cannot be null.");
+    public static readonly Error ReviewerIdEmpty = Error.Validation("RegulatoryCase.ReviewerIdEmpty", "Reviewer id cannot be empty.");
 }

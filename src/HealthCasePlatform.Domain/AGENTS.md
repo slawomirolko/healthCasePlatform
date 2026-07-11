@@ -17,6 +17,7 @@ Dependency leaf. Aggregate roots, child entities, `<Entity>Errors`, slice-owned 
 - Validation in factory. State transitions = methods return `ErrorOr<Success>`. No `try/catch`. No throw for control flow.
 - Errors = `public static readonly Error` on `<Entity>Errors` class, same folder. Code `<Entity>.<Name>`. Never inline `Error.Validation("...")`.
 - `Guid.CreateVersion7()` PKs. `DateTime.UtcNow`. Collections = `IReadOnlyList<T>` over `List<T> = []` backing field.
+- **Reviewer assignment = pure data, no access rule.** `RegulatoryCase` carries `AssignedScientificReviewerId`/`AssignedLegalReviewerId` (nullable `string?`, `nvarchar(100)`) + `AssignScientificReviewer`/`AssignLegalReviewer` methods (empty/whitespace → `ReviewerIdEmpty` validation error; reassignment allowed). These record **who** is assigned; they enforce **no** access rule. "Who may start a review" is an API-layer resource-based authz concern (see Api `AGENTS.md`). `ChangeStatus` escape hatch unchanged (still bypasses any HTTP-level gate).
 
 ## Do not
 
