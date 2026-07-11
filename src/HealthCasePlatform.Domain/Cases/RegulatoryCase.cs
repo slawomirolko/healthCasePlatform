@@ -28,6 +28,8 @@ public sealed class RegulatoryCase : Entity
     public string CreatedBy { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
+    public string? AssignedScientificReviewerId { get; private set; }
+    public string? AssignedLegalReviewerId { get; private set; }
 
     public IReadOnlyList<CaseDocument> Documents => _documents;
     public IReadOnlyList<CaseTask> Tasks => _tasks;
@@ -105,6 +107,30 @@ public sealed class RegulatoryCase : Entity
     {
         Priority = newPriority;
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    public ErrorOr<Success> AssignScientificReviewer(string reviewerId)
+    {
+        if (string.IsNullOrWhiteSpace(reviewerId))
+        {
+            return RegulatoryCaseErrors.ReviewerIdEmpty;
+        }
+
+        AssignedScientificReviewerId = reviewerId;
+        UpdatedAt = DateTime.UtcNow;
+        return Result.Success;
+    }
+
+    public ErrorOr<Success> AssignLegalReviewer(string reviewerId)
+    {
+        if (string.IsNullOrWhiteSpace(reviewerId))
+        {
+            return RegulatoryCaseErrors.ReviewerIdEmpty;
+        }
+
+        AssignedLegalReviewerId = reviewerId;
+        UpdatedAt = DateTime.UtcNow;
+        return Result.Success;
     }
 
     public ErrorOr<Success> ChangeStatus(CaseStatus newStatus)

@@ -208,6 +208,14 @@ namespace HealthCasePlatform.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("AssignedLegalReviewerId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("AssignedScientificReviewerId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<Guid>("CaseTypeId")
                         .HasColumnType("uniqueidentifier");
 

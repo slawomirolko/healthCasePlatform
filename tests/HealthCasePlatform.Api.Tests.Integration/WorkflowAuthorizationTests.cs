@@ -68,6 +68,7 @@ public sealed class WorkflowAuthorizationTests : IClassFixture<ApiFactory>
         var privileged = _factory.CreateClient();
         var created = await privileged.CreateCaseAsync();
         await privileged.BringCaseToStateAsync(created.Id, CaseStatus.Submitted);
+        await privileged.AssignScientificReviewerAsync(created.Id, "test-user");
 
         var client = _factory.CreateClientWithRoles(AppRoles.ScientificReviewer);
         var response = await client.PostAsync($"/api/v1/cases/{created.Id}/scientific-review", content: null);
@@ -81,6 +82,7 @@ public sealed class WorkflowAuthorizationTests : IClassFixture<ApiFactory>
         var privileged = _factory.CreateClient();
         var created = await privileged.CreateCaseAsync();
         await privileged.BringCaseToStateAsync(created.Id, CaseStatus.UnderScientificReview);
+        await privileged.AssignLegalReviewerAsync(created.Id, "test-user");
 
         var client = _factory.CreateClientWithRoles(AppRoles.LegalReviewer);
         var response = await client.PostAsync($"/api/v1/cases/{created.Id}/legal-review", content: null);

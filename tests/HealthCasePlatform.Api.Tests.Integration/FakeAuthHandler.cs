@@ -15,19 +15,26 @@ internal sealed class FakeAuthHandler(
     : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
 {
     public const string RolesHeader = "X-Roles";
+    public const string UserHeader = "X-User";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        StringValues headerValue = Request.Headers[RolesHeader];
-        var header = headerValue.ToString();
+        StringValues rolesHeaderValue = Request.Headers[RolesHeader];
+        var rolesHeader = rolesHeaderValue.ToString();
 
-        var roles = string.IsNullOrWhiteSpace(header)
+        var roles = string.IsNullOrWhiteSpace(rolesHeader)
             ? AppRoles.All
-            : header.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            : rolesHeader.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        var userId = Request.Headers.TryGetValue(UserHeader, out var userValue)
+            && !StringValues.IsNullOrEmpty(userValue)
+                ? userValue.ToString()
+                : "test-user";
 
         var claims = roles
             .Select(role => new Claim(ClaimTypes.Role, role))
-            .Append(new Claim(ClaimTypes.Name, "test-user"));
+            .Append(new Claim(ClaimTypes.NameIdentifier, userId))
+            .Append(new Claim(ClaimTypes.Name, userId));
 
         var identity = new ClaimsIdentity(claims, Scheme.Name);
         var principal = new ClaimsPrincipal(identity);

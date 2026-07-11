@@ -1,5 +1,6 @@
 using ErrorOr;
 using HealthCasePlatform.Api.Common;
+using HealthCasePlatform.Api.Common.Authorization;
 using HealthCasePlatform.Application.Cases.Commands;
 using HealthCasePlatform.Application.Cases.Models;
 using HealthCasePlatform.Application.Cases.Queries;
@@ -32,11 +33,23 @@ public static class CasesEndpoints
 
         group.MapPost("/cases/{id:guid}/scientific-review", StartScientificReview)
             .WithName("StartScientificReview")
-            .RequireAuthorization(b => b.RequireRole(AppRoles.ScientificReviewer));
+            .RequireAuthorization(b => b.RequireRole(AppRoles.ScientificReviewer, AppRoles.TeamLeader))
+            .AddEndpointFilter(ReviewAuthorizationFilter.For(new ReviewScientificRequirement()));
 
         group.MapPost("/cases/{id:guid}/legal-review", StartLegalReview)
             .WithName("StartLegalReview")
-            .RequireAuthorization(b => b.RequireRole(AppRoles.LegalReviewer));
+            .RequireAuthorization(b => b.RequireRole(AppRoles.LegalReviewer, AppRoles.TeamLeader))
+            .AddEndpointFilter(ReviewAuthorizationFilter.For(new ReviewLegalRequirement()));
+
+        group.MapPost("/cases/{id:guid}/assignment/scientific", AssignScientificReviewer)
+            .WithName("AssignScientificReviewer")
+            .AddEndpointFilter<ValidationFilter<AssignReviewerRequest>>()
+            .RequireAuthorization(b => b.RequireRole(AppRoles.TeamLeader));
+
+        group.MapPost("/cases/{id:guid}/assignment/legal", AssignLegalReviewer)
+            .WithName("AssignLegalReviewer")
+            .AddEndpointFilter<ValidationFilter<AssignReviewerRequest>>()
+            .RequireAuthorization(b => b.RequireRole(AppRoles.TeamLeader));
 
         group.MapPost("/cases/{id:guid}/decision-request", RequestDecision)
             .WithName("RequestDecision")
@@ -159,6 +172,26 @@ public static class CasesEndpoints
         CancellationToken cancellationToken = default)
     {
         var result = await mediator.Send(new StartLegalReviewCommand(id), cancellationToken);
+        return MapTransition(result);
+    }
+
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> AssignScientificReviewer(
+        Guid id,
+        AssignReviewerRequest request,
+        IMediator mediator,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new AssignScientificReviewerCommand(id, request.ReviewerId), cancellationToken);
+        return MapTransition(result);
+    }
+
+    private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> AssignLegalReviewer(
+        Guid id,
+        AssignReviewerRequest request,
+        IMediator mediator,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new AssignLegalReviewerCommand(id, request.ReviewerId), cancellationToken);
         return MapTransition(result);
     }
 

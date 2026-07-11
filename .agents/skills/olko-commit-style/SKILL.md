@@ -16,6 +16,26 @@ description: "Check coding style compliance for changed files across stacks. Rea
 - Called by `olko-commit` (declared in `uses`) to check style before committing
 - Standalone: user says "check style", "lint this", "verify coding style"
 
+## Optional dependencies (uses)
+
+This skill may delegate stack-specific checks when declared in the project adapter (`.agents/skills/olko-commit-style/project.md`):
+
+```yaml
+uses:
+  - olko-dotnet-style
+  - olko-dotnet-architecture
+  - olko-dotnet-testing
+  - olko-docker-style
+  - olko-python-architecture
+  - olko-python-style
+  - olko-python-testing
+  - olko-kotlin-architecture
+  - olko-kotlin-style
+  - olko-kotlin-testing
+```
+
+If a dependency is not declared, run the built-in document-based checks below.
+
 ## Configuration keys
 
 Read from `.agents/skill-config.md`:
@@ -33,6 +53,7 @@ For each changed file, determine its stack using project markers (not fixed path
 | Stack | Markers |
 |-------|---------|
 | .NET | changed `.cs` / `.csproj`; belongs to nearest `*.csproj` |
+| Docker | changed `Dockerfile*`, `*.Dockerfile`, `.dockerignore`, `compose*.yml`, `compose*.yaml`, `docker-compose*.yml`, `docker-compose*.yaml` |
 | Python | changed `.py`; belongs to nearest `pyproject.toml` dir |
 | Kotlin/Android | changed `.kt` / `.kts`; belongs to nearest `gradlew` dir |
 
@@ -56,6 +77,20 @@ Run the style tool the docs reference. Do NOT hardcode a tool — use what the d
 - If no linter is configured, the docs will say so; skip the linter and continue.
 
 ### Step 4 — Cross-check against documented rules
+
+If a matching stack-specific skill is declared in `uses`, delegate the relevant changed files to it and follow its result:
+- `.NET` style: `olko-dotnet-style`
+- `.NET` architecture: `olko-dotnet-architecture`
+- `.NET` test conventions: `olko-dotnet-testing`
+- Docker conventions: `olko-docker-style`
+- Python architecture: `olko-python-architecture`
+- Python style: `olko-python-style`
+- Python test conventions: `olko-python-testing`
+- Kotlin/Android architecture: `olko-kotlin-architecture`
+- Kotlin/Android style: `olko-kotlin-style`
+- Kotlin/Android test conventions: `olko-kotlin-testing`
+
+If no matching dependency is declared, inspect locally:
 
 Inspect changed files against the architecture + style rules in the docs. Report any violations found, citing the source doc and section:
 

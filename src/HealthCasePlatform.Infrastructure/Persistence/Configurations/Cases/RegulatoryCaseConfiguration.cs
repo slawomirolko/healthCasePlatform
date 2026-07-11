@@ -20,6 +20,8 @@ public sealed class RegulatoryCaseConfiguration : IEntityTypeConfiguration<Regul
         builder.Property(c => c.CreatedBy).IsRequired().HasMaxLength(100);
         builder.Property(c => c.CreatedAt).IsRequired();
         builder.Property(c => c.UpdatedAt);
+        builder.Property(c => c.AssignedScientificReviewerId).HasMaxLength(100);
+        builder.Property(c => c.AssignedLegalReviewerId).HasMaxLength(100);
         builder.Property(c => c.Id).ValueGeneratedNever();
 
         builder.HasIndex(c => c.Status);
