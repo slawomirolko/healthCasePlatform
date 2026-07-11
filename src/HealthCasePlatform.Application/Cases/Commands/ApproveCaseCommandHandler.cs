@@ -1,5 +1,6 @@
 using ErrorOr;
 using HealthCasePlatform.Domain.Cases;
+using HealthCasePlatform.Domain.Enums;
 using Mediator;
 
 namespace HealthCasePlatform.Application.Cases.Commands;
@@ -14,5 +15,5 @@ public sealed class ApproveCaseCommandHandler : ICommandHandler<ApproveCaseComma
     }
 
     public ValueTask<ErrorOr<RegulatoryCase>> Handle(ApproveCaseCommand command, CancellationToken cancellationToken)
-        => CaseTransitionHelper.TransitionAsync(_repository, command.Id, c => c.Approve(), cancellationToken);
+        => CaseTransitionHelper.TransitionAsync(_repository, command.Id, c => c.Approve(), cancellationToken, command.Actor, AuditAction.DecisionMade);
 }

@@ -67,6 +67,10 @@ public static class CasesEndpoints
             .WithName("GetCaseHistory")
             .RequireAuthorization();
 
+        group.MapGet("/cases/{id:guid}/audit", GetCaseAudit)
+            .WithName("GetCaseAudit")
+            .RequireAuthorization(b => b.RequireRole(AppRoles.Auditor, AppRoles.TeamLeader));
+
         return group;
     }
 
@@ -151,27 +155,30 @@ public static class CasesEndpoints
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> SubmitCase(
         Guid id,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new SubmitCaseCommand(id), cancellationToken);
+        var result = await mediator.Send(new SubmitCaseCommand(id, httpContext.User.GetUserId()), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartScientificReview(
         Guid id,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new StartScientificReviewCommand(id), cancellationToken);
+        var result = await mediator.Send(new StartScientificReviewCommand(id, httpContext.User.GetUserId()), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> StartLegalReview(
         Guid id,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new StartLegalReviewCommand(id), cancellationToken);
+        var result = await mediator.Send(new StartLegalReviewCommand(id, httpContext.User.GetUserId()), cancellationToken);
         return MapTransition(result);
     }
 
@@ -198,27 +205,30 @@ public static class CasesEndpoints
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> RequestDecision(
         Guid id,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new RequestDecisionCommand(id), cancellationToken);
+        var result = await mediator.Send(new RequestDecisionCommand(id, httpContext.User.GetUserId()), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> ApproveCase(
         Guid id,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new ApproveCaseCommand(id), cancellationToken);
+        var result = await mediator.Send(new ApproveCaseCommand(id, httpContext.User.GetUserId()), cancellationToken);
         return MapTransition(result);
     }
 
     private static async Task<Results<Ok<CaseResponse>, NotFound, IResult>> RejectCase(
         Guid id,
         IMediator mediator,
+        HttpContext httpContext,
         CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new RejectCaseCommand(id), cancellationToken);
+        var result = await mediator.Send(new RejectCaseCommand(id, httpContext.User.GetUserId()), cancellationToken);
         return MapTransition(result);
     }
 
@@ -244,6 +254,31 @@ public static class CasesEndpoints
             .ToList();
 
         return TypedResults.Ok((IReadOnlyList<CaseStatusHistoryResponse>)history);
+    }
+
+    private static async Task<Results<Ok<IReadOnlyList<AuditEntryResponse>>, NotFound>> GetCaseAudit(
+        Guid id,
+        IMediator mediator,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await mediator.Send(new GetCaseAuditQuery(id), cancellationToken);
+
+        if (result.IsError)
+        {
+            return TypedResults.NotFound();
+        }
+
+        var audit = result.Value
+            .Select(a => new AuditEntryResponse(
+                a.Id,
+                a.CaseId,
+                a.Action.ToString(),
+                a.Actor,
+                a.Detail,
+                a.OccurredAt))
+            .ToList();
+
+        return TypedResults.Ok((IReadOnlyList<AuditEntryResponse>)audit);
     }
 
     private static CaseResponse ToCaseResponse(RegulatoryCase entity) =>

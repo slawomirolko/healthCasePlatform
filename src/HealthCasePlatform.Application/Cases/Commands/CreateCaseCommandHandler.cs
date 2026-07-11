@@ -1,5 +1,6 @@
 using ErrorOr;
 using HealthCasePlatform.Domain.Cases;
+using HealthCasePlatform.Domain.Enums;
 using Mediator;
 
 namespace HealthCasePlatform.Application.Cases.Commands;
@@ -30,6 +31,8 @@ public sealed class CreateCaseCommandHandler : ICommandHandler<CreateCaseCommand
 
         var entity = result.Value;
         await _repository.AddAsync(entity, cancellationToken);
+        var audit = AuditEntry.Create(entity.Id, AuditAction.CaseCreated, command.CreatedBy, entity.Title);
+        await _repository.AddAuditEntryAsync(audit.Value, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
         return entity;
     }

@@ -1,5 +1,6 @@
 using ErrorOr;
 using HealthCasePlatform.Domain.Cases;
+using HealthCasePlatform.Domain.Enums;
 using Mediator;
 
 namespace HealthCasePlatform.Application.Cases.Commands;
@@ -14,5 +15,5 @@ public sealed class StartLegalReviewCommandHandler : ICommandHandler<StartLegalR
     }
 
     public ValueTask<ErrorOr<RegulatoryCase>> Handle(StartLegalReviewCommand command, CancellationToken cancellationToken)
-        => CaseTransitionHelper.TransitionAsync(_repository, command.Id, c => c.StartLegalReview(), cancellationToken);
+        => CaseTransitionHelper.TransitionAsync(_repository, command.Id, c => c.StartLegalReview(), cancellationToken, command.Actor, AuditAction.StatusChanged);
 }
