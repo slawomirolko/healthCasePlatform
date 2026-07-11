@@ -1,7 +1,7 @@
 using ErrorOr;
-using HealthCasePlatform.Application.Cases.Notifications;
 using HealthCasePlatform.Domain.Cases;
 using HealthCasePlatform.Domain.Cases.Events;
+using HealthCasePlatform.Domain.Cases.Messaging;
 using HealthCasePlatform.Domain.Enums;
 using Mediator;
 
@@ -11,13 +11,13 @@ public sealed class SubmitCaseCommandHandler : ICommandHandler<SubmitCaseCommand
 {
     private readonly ICaseRepository _repository;
     private readonly IAuditLogWriter _auditWriter;
-    private readonly IMediator _mediator;
+    private readonly ICaseEventOutbox _outbox;
 
-    public SubmitCaseCommandHandler(ICaseRepository repository, IAuditLogWriter auditWriter, IMediator mediator)
+    public SubmitCaseCommandHandler(ICaseRepository repository, IAuditLogWriter auditWriter, ICaseEventOutbox outbox)
     {
         _repository = repository;
         _auditWriter = auditWriter;
-        _mediator = mediator;
+        _outbox = outbox;
     }
 
     public async ValueTask<ErrorOr<RegulatoryCase>> Handle(SubmitCaseCommand command, CancellationToken cancellationToken)
@@ -51,7 +51,7 @@ public sealed class SubmitCaseCommandHandler : ICommandHandler<SubmitCaseCommand
         {
             if (domainEvent is CaseSubmitted cs)
             {
-                await _mediator.Publish(new CaseSubmittedNotification(cs.CaseId, cs.OccurredAtUtc), cancellationToken);
+                await _outbox.EnqueueCaseSubmittedAsync(cs.CaseId, cs.OccurredAtUtc, cancellationToken);
             }
         }
 

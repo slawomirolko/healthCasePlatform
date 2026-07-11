@@ -11,4 +11,9 @@
     <PackageReference Include="ErrorOr" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="HealthCasePlatform.Infrastructure" />
+    <InternalsVisibleTo Include="HealthCasePlatform.Domain.Tests" />
+  </ItemGroup>
+
 </Project>
