@@ -27,15 +27,32 @@ public sealed class CaseSubmittedNotificationTests : IClassFixture<ApiFactory>
         return await db.Notifications.AsNoTracking().Where(n => n.CaseId == caseId).ToListAsync();
     }
 
+    private static async Task<List<Notification>> PollNotificationsAsync(ApiFactory factory, Guid caseId, TimeSpan timeout)
+    {
+        using var cts = new CancellationTokenSource(timeout);
+        while (!cts.IsCancellationRequested)
+        {
+            var notifications = await FindNotificationsAsync(factory, caseId);
+            if (notifications.Count > 0)
+            {
+                return notifications;
+            }
+
+            await Task.Delay(200, cts.Token);
+        }
+
+        return await FindNotificationsAsync(factory, caseId);
+    }
+
     [Fact]
-    public async Task SubmitCase_OnSuccess_CreatesNotificationRecord()
+    public async Task SubmitCase_OnSuccess_EventuallyCreatesNotificationRecord()
     {
         var created = await _client.CreateCaseAsync();
 
         var response = await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        var notifications = await FindNotificationsAsync(_factory, created.Id);
+        var notifications = await PollNotificationsAsync(_factory, created.Id, TimeSpan.FromSeconds(20));
         var notification = notifications.ShouldHaveSingleItem();
         notification.Type.ShouldBe(NotificationType.CaseSubmitted);
         notification.CaseId.ShouldBe(created.Id);
@@ -43,16 +60,30 @@ public sealed class CaseSubmittedNotificationTests : IClassFixture<ApiFactory>
     }
 
     [Fact]
-    public async Task SubmitCase_WhenTransitionFails_DoesNotCreateNotificationRecord()
+    public async Task SubmitCase_WhenTransitionFails_DoesNotCreateExtraNotificationRecord()
     {
         var created = await _client.CreateCaseAsync();
         await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
 
+        await PollNotificationsAsync(_factory, created.Id, TimeSpan.FromSeconds(20));
+
         var secondSubmit = await _client.PostAsync($"/api/v1/cases/{created.Id}/submission", content: null);
 
         secondSubmit.StatusCode.ShouldBe(HttpStatusCode.Conflict);
-        var notifications = await FindNotificationsAsync(_factory, created.Id);
-        notifications.Count.ShouldBe(1);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!cts.IsCancellationRequested)
+        {
+            var notifications = await FindNotificationsAsync(_factory, created.Id);
+            notifications.Count.ShouldBe(1);
+            try
+            {
+                await Task.Delay(500, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
     }
 
     [Fact]
@@ -60,8 +91,19 @@ public sealed class CaseSubmittedNotificationTests : IClassFixture<ApiFactory>
     {
         var created = await _client.CreateCaseAsync();
 
-        var notifications = await FindNotificationsAsync(_factory, created.Id);
-
-        notifications.ShouldBeEmpty();
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        while (!cts.IsCancellationRequested)
+        {
+            var notifications = await FindNotificationsAsync(_factory, created.Id);
+            notifications.ShouldBeEmpty();
+            try
+            {
+                await Task.Delay(500, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
     }
 }

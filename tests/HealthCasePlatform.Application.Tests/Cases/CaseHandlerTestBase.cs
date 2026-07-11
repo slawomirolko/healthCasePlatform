@@ -1,6 +1,6 @@
 using HealthCasePlatform.Domain.Cases;
+using HealthCasePlatform.Domain.Cases.Messaging;
 using HealthCasePlatform.Domain.Enums;
-using Mediator;
 using NSubstitute;
 using Shouldly;
 
@@ -12,7 +12,7 @@ public abstract class CaseHandlerTestBase
 
     protected static IAuditLogWriter CreateAuditWriter() => Substitute.For<IAuditLogWriter>();
 
-    protected static IMediator CreateMediator() => Substitute.For<IMediator>();
+    protected static ICaseEventOutbox CreateCaseEventOutbox() => Substitute.For<ICaseEventOutbox>();
 
     protected static INotificationWriter CreateNotificationWriter() => Substitute.For<INotificationWriter>();
 

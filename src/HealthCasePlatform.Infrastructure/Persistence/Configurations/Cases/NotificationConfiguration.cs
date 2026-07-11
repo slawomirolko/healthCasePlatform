@@ -17,6 +17,9 @@ public sealed class NotificationConfiguration : IEntityTypeConfiguration<Notific
         builder.Property(n => n.CreatedAt).IsRequired();
 
         builder.HasIndex(n => n.CaseId);
+        builder.HasIndex(n => new { n.CaseId, n.Type })
+            .IsUnique()
+            .HasDatabaseName("IX_Notifications_CaseId_Type");
 
         builder.HasOne<RegulatoryCase>()
             .WithMany()

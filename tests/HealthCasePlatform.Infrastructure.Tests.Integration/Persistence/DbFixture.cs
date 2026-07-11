@@ -9,6 +9,8 @@ public sealed class DbFixture : IAsyncLifetime
     private readonly MsSqlContainer _db = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest")
         .Build();
 
+    public string ConnectionString => _db.GetConnectionString();
+
     public AppDbContext CreateContext() => new(
         new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(_db.GetConnectionString())
