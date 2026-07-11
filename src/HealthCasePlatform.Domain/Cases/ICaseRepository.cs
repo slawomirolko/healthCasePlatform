@@ -16,6 +16,10 @@ public interface ICaseRepository
 
     Task<IReadOnlyList<CaseStatusHistory>> GetHistoryByCaseIdAsync(Guid caseId, CancellationToken cancellationToken);
 
+    Task AddAuditEntryAsync(AuditEntry entry, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<AuditEntry>> GetAuditByCaseIdAsync(Guid caseId, CancellationToken cancellationToken);
+
     Task<(IReadOnlyList<RegulatoryCase> Items, int TotalCount)> ListAsync(
         CaseStatus? status,
         CasePriority? priority,

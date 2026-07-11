@@ -39,6 +39,17 @@ public sealed class CaseRepository : ICaseRepository
             .OrderBy(h => h.TransitionedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task AddAuditEntryAsync(AuditEntry entry, CancellationToken cancellationToken)
+        => await _db.AuditEntries.AddAsync(entry, cancellationToken);
+
+    public async Task<IReadOnlyList<AuditEntry>> GetAuditByCaseIdAsync(Guid caseId, CancellationToken cancellationToken)
+        => await _db.AuditEntries
+            .AsNoTracking()
+            .Where(a => a.CaseId == caseId)
+            .OrderBy(a => a.OccurredAt)
+            .ThenBy(a => a.Id)
+            .ToListAsync(cancellationToken);
+
     public async Task<(IReadOnlyList<RegulatoryCase> Items, int TotalCount)> ListAsync(
         CaseStatus? status,
         CasePriority? priority,

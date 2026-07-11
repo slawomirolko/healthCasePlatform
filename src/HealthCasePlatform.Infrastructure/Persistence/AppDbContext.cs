@@ -7,6 +7,7 @@ public sealed class AppDbContext : DbContext
 {
     public DbSet<RegulatoryCase> RegulatoryCases => Set<RegulatoryCase>();
     public DbSet<CaseStatusHistory> CaseStatusHistories => Set<CaseStatusHistory>();
+    public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
     public DbSet<CaseType> CaseTypes => Set<CaseType>();
     public DbSet<CaseDocument> CaseDocuments => Set<CaseDocument>();
     public DbSet<CaseTask> CaseTasks => Set<CaseTask>();

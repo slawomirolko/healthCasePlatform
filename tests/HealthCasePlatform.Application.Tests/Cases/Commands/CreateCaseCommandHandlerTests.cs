@@ -34,6 +34,26 @@ public sealed class CreateCaseCommandHandlerTests : CaseHandlerTestBase
     }
 
     [Fact]
+    public async Task Handle_OnSuccess_StagesCaseCreatedAuditEntry()
+    {
+        var repo = CreateRepository();
+        var handler = new CreateCaseCommandHandler(repo);
+        var command = ValidCommand();
+
+        await handler.Handle(command, CancellationToken.None);
+
+        await repo.Received(1).AddAuditEntryAsync(
+            Arg.Is<AuditEntry>(a => a.Action == AuditAction.CaseCreated && a.Actor == command.CreatedBy),
+            Arg.Any<CancellationToken>());
+        Received.InOrder(async () =>
+        {
+            await repo.AddAsync(Arg.Any<RegulatoryCase>(), Arg.Any<CancellationToken>());
+            await repo.AddAuditEntryAsync(Arg.Any<AuditEntry>(), Arg.Any<CancellationToken>());
+            await repo.SaveChangesAsync(Arg.Any<CancellationToken>());
+        });
+    }
+
+    [Fact]
     public async Task Handle_WhenTitleEmpty_ReturnsValidationErrors()
     {
         var repo = CreateRepository();
@@ -56,6 +76,7 @@ public sealed class CreateCaseCommandHandlerTests : CaseHandlerTestBase
 
         result.IsError.ShouldBeTrue();
         await repo.DidNotReceive().AddAsync(Arg.Any<RegulatoryCase>(), Arg.Any<CancellationToken>());
+        await repo.DidNotReceive().AddAuditEntryAsync(Arg.Any<AuditEntry>(), Arg.Any<CancellationToken>());
         await repo.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }
