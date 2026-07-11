@@ -1,4 +1,5 @@
 using HealthCasePlatform.Domain.Cases;
+using HealthCasePlatform.Domain.Cases.Events;
 using HealthCasePlatform.Domain.Enums;
 using Shouldly;
 
@@ -154,6 +155,36 @@ public class RegulatoryCaseTests
         var result = sut.Submit();
 
         result.IsError.ShouldBeTrue();
+    }
+
+    [Fact]
+    public void Create_WhenFresh_HasNoDomainEvents()
+    {
+        var sut = CreateCase();
+
+        sut.DomainEvents.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Submit_FromDraft_RaisesCaseSubmittedDomainEvent()
+    {
+        var sut = CreateCase();
+
+        sut.Submit();
+
+        var evt = sut.DomainEvents.OfType<CaseSubmitted>().Single();
+        evt.CaseId.ShouldBe(sut.Id);
+    }
+
+    [Fact]
+    public void Submit_WhenNotDraft_DoesNotRaiseCaseSubmittedEvent()
+    {
+        var sut = CreateCase();
+        sut.Submit();
+
+        sut.Submit();
+
+        sut.DomainEvents.OfType<CaseSubmitted>().Count().ShouldBe(1);
     }
 
     [Fact]
