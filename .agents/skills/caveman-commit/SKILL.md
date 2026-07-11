@@ -3,8 +3,9 @@ name: caveman-commit
 description: >
   Ultra-compressed commit message style guide. Cuts noise from commit messages while preserving
   intent and reasoning. Conventional Commits format. Subject ≤50 chars, body only when "why"
-  isn't obvious. This skill provides the commit message FORMAT used by smart-commit;
-  it should NOT be called directly when the user says "commit" or "smart-commit".
+  isn't obvious. This helper skill is consumed by commit workflow skills;
+  it should NOT be called directly when the user says "commit".
+origin: vendored
 ---
 
 Write commit messages terse and exact. Conventional Commits format. No fluff. Why over what.
@@ -62,4 +63,4 @@ Always include body for: breaking changes, security fixes, data migrations, anyt
 
 ## Boundaries
 
-This skill is a **style guide consumed by `smart-commit`**, not a standalone action skill. When the user says "commit", "smart-commit", or any commit variant, call the `smart-commit` skill — which will apply caveman-commit formatting to the commit message it generates. Do NOT call this skill directly for commit workflow.
+This skill is a **style guide consumed by commit workflow skills**, not a standalone action skill. When the user says "commit" or any commit variant, call the marketplace commit workflow skill (`olko-commit`). Do NOT call this skill directly for commit workflow.
