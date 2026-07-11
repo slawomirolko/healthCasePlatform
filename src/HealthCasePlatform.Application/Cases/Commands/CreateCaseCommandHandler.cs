@@ -8,10 +8,12 @@ namespace HealthCasePlatform.Application.Cases.Commands;
 public sealed class CreateCaseCommandHandler : ICommandHandler<CreateCaseCommand, ErrorOr<RegulatoryCase>>
 {
     private readonly ICaseRepository _repository;
+    private readonly IAuditLogWriter _writer;
 
-    public CreateCaseCommandHandler(ICaseRepository repository)
+    public CreateCaseCommandHandler(ICaseRepository repository, IAuditLogWriter writer)
     {
         _repository = repository;
+        _writer = writer;
     }
 
     public async ValueTask<ErrorOr<RegulatoryCase>> Handle(CreateCaseCommand command, CancellationToken cancellationToken)
@@ -32,7 +34,7 @@ public sealed class CreateCaseCommandHandler : ICommandHandler<CreateCaseCommand
         var entity = result.Value;
         await _repository.AddAsync(entity, cancellationToken);
         var audit = AuditEntry.Create(entity.Id, AuditAction.CaseCreated, command.CreatedBy, entity.Title);
-        await _repository.AddAuditEntryAsync(audit.Value, cancellationToken);
+        await _writer.WriteAsync(audit.Value, cancellationToken);
         await _repository.SaveChangesAsync(cancellationToken);
         return entity;
     }

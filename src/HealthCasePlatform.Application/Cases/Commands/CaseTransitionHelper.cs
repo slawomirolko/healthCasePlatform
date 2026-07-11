@@ -8,6 +8,7 @@ internal static class CaseTransitionHelper
 {
     public static async ValueTask<ErrorOr<RegulatoryCase>> TransitionAsync(
         ICaseRepository repository,
+        IAuditLogWriter auditWriter,
         Guid id,
         Func<RegulatoryCase, ErrorOr<Success>> transition,
         CancellationToken cancellationToken,
@@ -31,7 +32,7 @@ internal static class CaseTransitionHelper
         {
             var toStatus = entity.Status;
             var audit = AuditEntry.Create(entity.Id, auditAction.Value, actor!, $"{fromStatus} → {toStatus}");
-            await repository.AddAuditEntryAsync(audit.Value, cancellationToken);
+            await auditWriter.WriteAsync(audit.Value, cancellationToken);
         }
 
         await repository.SaveChangesAsync(cancellationToken);

@@ -18,7 +18,7 @@ public sealed class RequestDecisionCommandHandlerTests : CaseHandlerTestBase
     {
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns((RegulatoryCase?)null);
-        var handler = new RequestDecisionCommandHandler(repo);
+        var handler = new RequestDecisionCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -33,7 +33,7 @@ public sealed class RequestDecisionCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.UnderLegalReview);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new RequestDecisionCommandHandler(repo);
+        var handler = new RequestDecisionCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
