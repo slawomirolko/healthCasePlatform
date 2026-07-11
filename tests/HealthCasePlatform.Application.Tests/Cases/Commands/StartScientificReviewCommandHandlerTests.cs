@@ -18,7 +18,7 @@ public sealed class StartScientificReviewCommandHandlerTests : CaseHandlerTestBa
     {
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns((RegulatoryCase?)null);
-        var handler = new StartScientificReviewCommandHandler(repo);
+        var handler = new StartScientificReviewCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -33,7 +33,7 @@ public sealed class StartScientificReviewCommandHandlerTests : CaseHandlerTestBa
         var existing = BringCaseTo(CaseStatus.Submitted);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new StartScientificReviewCommandHandler(repo);
+        var handler = new StartScientificReviewCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 

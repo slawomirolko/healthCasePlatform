@@ -18,7 +18,7 @@ public sealed class SubmitCaseCommandHandlerTests : CaseHandlerTestBase
     {
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns((RegulatoryCase?)null);
-        var handler = new SubmitCaseCommandHandler(repo);
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -33,7 +33,7 @@ public sealed class SubmitCaseCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.Draft);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new SubmitCaseCommandHandler(repo);
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -48,7 +48,7 @@ public sealed class SubmitCaseCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.Submitted);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new SubmitCaseCommandHandler(repo);
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -62,7 +62,7 @@ public sealed class SubmitCaseCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.Submitted);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new SubmitCaseCommandHandler(repo);
+        var handler = new SubmitCaseCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 

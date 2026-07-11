@@ -18,7 +18,7 @@ public sealed class AssignLegalReviewerCommandHandlerTests : CaseHandlerTestBase
     {
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns((RegulatoryCase?)null);
-        var handler = new AssignLegalReviewerCommandHandler(repo);
+        var handler = new AssignLegalReviewerCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -33,7 +33,7 @@ public sealed class AssignLegalReviewerCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.Draft);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new AssignLegalReviewerCommandHandler(repo);
+        var handler = new AssignLegalReviewerCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -48,7 +48,7 @@ public sealed class AssignLegalReviewerCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.Draft);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new AssignLegalReviewerCommandHandler(repo);
+        var handler = new AssignLegalReviewerCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(new AssignLegalReviewerCommand(CaseId, ""), CancellationToken.None);
 

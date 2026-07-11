@@ -19,6 +19,7 @@ Persistence. `AppDbContext`, `IEntityTypeConfiguration<T>` per entity, EF migrat
 - Read-only = `AsNoTracking()`. Bulk = `ExecuteUpdateAsync`/`ExecuteDeleteAsync`. Split query on multi-collection eager. No sync EF methods (`.ToList()`/`.First()`).
 - Keep `IDesignTimeDbContextFactory<AppDbContext>` so `dotnet ef` finds context without host.
 - No domain logic here. No `ErrorOr`. Repo returns primitives/entities. "Not found" = null return, Application decides.
+- `IAuditLogWriter` has two adapters: `SqlAuditLogWriter` (Scoped, shares the request `AppDbContext`, stages-only — never `SaveChanges`) and `MongoAuditLogWriter` (Scoped, `IMongoClient` Singleton). Provider switch lives in `AddInfrastructure` (bind `AuditSettings`, branch on `Provider`). `AuditEntry` mapped to Mongo via `BsonClassMap` — **explicitly `MapMember` every field**: `AutoMap()` skips the private setters (`AuditEntry.cs:9-13`) and the `protected set Id` (`Entity.cs:5`); only the explicit maps persist (`CaseId`/`Actor`/`Detail`/`OccurredAt` would be silently dropped otherwise). `EnumSerializer<Int32>` for `Action`. No `[Bson*]` attributes on the Domain entity. If private-setter reflection breaks on a driver bump, fall back to `internal AuditEntry.Hydrate` + `InternalsVisibleTo` Infrastructure.
 
 ## DI
 

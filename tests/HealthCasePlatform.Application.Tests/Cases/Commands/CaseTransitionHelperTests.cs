@@ -16,19 +16,20 @@ public sealed class CaseTransitionHelperTests : CaseHandlerTestBase
     {
         var existing = BringCaseTo(CaseStatus.Draft);
         var repo = CreateRepository();
+        var writer = CreateAuditWriter();
         repo.FindByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(existing);
 
         await CaseTransitionHelper.TransitionAsync(
-            repo, existing.Id, c => c.Submit(), CancellationToken.None, Actor, AuditAction.StatusChanged);
+            repo, writer, existing.Id, c => c.Submit(), CancellationToken.None, Actor, AuditAction.StatusChanged);
 
-        await repo.Received(1).AddAuditEntryAsync(
+        await writer.Received(1).WriteAsync(
             Arg.Is<AuditEntry>(a => a.Action == AuditAction.StatusChanged
                                     && a.Actor == Actor
                                     && a.Detail == "Draft → Submitted"),
             Arg.Any<CancellationToken>());
         Received.InOrder(async () =>
         {
-            await repo.AddAuditEntryAsync(Arg.Any<AuditEntry>(), Arg.Any<CancellationToken>());
+            await writer.WriteAsync(Arg.Any<AuditEntry>(), Arg.Any<CancellationToken>());
             await repo.SaveChangesAsync(Arg.Any<CancellationToken>());
         });
     }
@@ -38,12 +39,13 @@ public sealed class CaseTransitionHelperTests : CaseHandlerTestBase
     {
         var existing = BringCaseTo(CaseStatus.PendingDecision);
         var repo = CreateRepository();
+        var writer = CreateAuditWriter();
         repo.FindByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(existing);
 
         await CaseTransitionHelper.TransitionAsync(
-            repo, existing.Id, c => c.Approve(), CancellationToken.None, Actor, AuditAction.DecisionMade);
+            repo, writer, existing.Id, c => c.Approve(), CancellationToken.None, Actor, AuditAction.DecisionMade);
 
-        await repo.Received(1).AddAuditEntryAsync(
+        await writer.Received(1).WriteAsync(
             Arg.Is<AuditEntry>(a => a.Action == AuditAction.DecisionMade
                                     && a.Detail == "PendingDecision → Approved"),
             Arg.Any<CancellationToken>());
@@ -54,12 +56,13 @@ public sealed class CaseTransitionHelperTests : CaseHandlerTestBase
     {
         var existing = BringCaseTo(CaseStatus.Draft);
         var repo = CreateRepository();
+        var writer = CreateAuditWriter();
         repo.FindByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(existing);
 
         await CaseTransitionHelper.TransitionAsync(
-            repo, existing.Id, c => c.Submit(), CancellationToken.None);
+            repo, writer, existing.Id, c => c.Submit(), CancellationToken.None);
 
-        await repo.DidNotReceive().AddAuditEntryAsync(Arg.Any<AuditEntry>(), Arg.Any<CancellationToken>());
+        await writer.DidNotReceive().WriteAsync(Arg.Any<AuditEntry>(), Arg.Any<CancellationToken>());
         await repo.Received(1).SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 
@@ -68,13 +71,14 @@ public sealed class CaseTransitionHelperTests : CaseHandlerTestBase
     {
         var existing = BringCaseTo(CaseStatus.Submitted);
         var repo = CreateRepository();
+        var writer = CreateAuditWriter();
         repo.FindByIdAsync(Arg.Any<Guid>(), Arg.Any<CancellationToken>()).Returns(existing);
 
         var result = await CaseTransitionHelper.TransitionAsync(
-            repo, existing.Id, c => c.Submit(), CancellationToken.None, Actor, AuditAction.StatusChanged);
+            repo, writer, existing.Id, c => c.Submit(), CancellationToken.None, Actor, AuditAction.StatusChanged);
 
         result.IsError.ShouldBeTrue();
-        await repo.DidNotReceive().AddAuditEntryAsync(Arg.Any<AuditEntry>(), Arg.Any<CancellationToken>());
+        await writer.DidNotReceive().WriteAsync(Arg.Any<AuditEntry>(), Arg.Any<CancellationToken>());
         await repo.DidNotReceive().SaveChangesAsync(Arg.Any<CancellationToken>());
     }
 }

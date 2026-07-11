@@ -7,10 +7,12 @@ namespace HealthCasePlatform.Application.Cases.Queries;
 public sealed class GetCaseAuditQueryHandler : IQueryHandler<GetCaseAuditQuery, ErrorOr<IReadOnlyList<AuditEntry>>>
 {
     private readonly ICaseRepository _repository;
+    private readonly IAuditLogWriter _writer;
 
-    public GetCaseAuditQueryHandler(ICaseRepository repository)
+    public GetCaseAuditQueryHandler(ICaseRepository repository, IAuditLogWriter writer)
     {
         _repository = repository;
+        _writer = writer;
     }
 
     public async ValueTask<ErrorOr<IReadOnlyList<AuditEntry>>> Handle(GetCaseAuditQuery query, CancellationToken cancellationToken)
@@ -21,7 +23,7 @@ public sealed class GetCaseAuditQueryHandler : IQueryHandler<GetCaseAuditQuery, 
             return CaseErrors.NotFound;
         }
 
-        var audit = await _repository.GetAuditByCaseIdAsync(query.Id, cancellationToken);
+        var audit = await _writer.GetByCaseIdAsync(query.Id, cancellationToken);
         return ErrorOrFactory.From(audit);
     }
 }

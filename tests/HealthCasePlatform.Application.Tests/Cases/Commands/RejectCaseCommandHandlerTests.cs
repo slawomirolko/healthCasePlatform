@@ -18,7 +18,7 @@ public sealed class RejectCaseCommandHandlerTests : CaseHandlerTestBase
     {
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns((RegulatoryCase?)null);
-        var handler = new RejectCaseCommandHandler(repo);
+        var handler = new RejectCaseCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
@@ -33,7 +33,7 @@ public sealed class RejectCaseCommandHandlerTests : CaseHandlerTestBase
         var existing = BringCaseTo(CaseStatus.PendingDecision);
         var repo = CreateRepository();
         repo.FindByIdAsync(CaseId, Arg.Any<CancellationToken>()).Returns(existing);
-        var handler = new RejectCaseCommandHandler(repo);
+        var handler = new RejectCaseCommandHandler(repo, CreateAuditWriter());
 
         var result = await handler.Handle(Command(), CancellationToken.None);
 
